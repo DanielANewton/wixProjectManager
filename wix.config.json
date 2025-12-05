@@ -1,0 +1,5 @@
+{
+  "$schema": "https://dev.wix.com/wix-cli/schemas/wix-config.json",
+  "appId": "204b3584-8a5b-4691-bc0a-c5e830c3129d",
+  "projectId": "project-manager-v-0"
+}

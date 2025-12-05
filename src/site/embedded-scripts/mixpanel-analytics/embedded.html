@@ -1,0 +1,13 @@
+<div id="project-token" data-project-token="{{projectToken}}"></div>
+<script type="module">
+  import mixpanel from 'mixpanel-browser';
+
+  const el = document.querySelector('#project-token');
+
+  mixpanel.init(el.dataset.projectToken, {
+    debug: true,
+    track_pageview: true,
+  });
+
+  mixpanel.track('An Event');
+</script>
