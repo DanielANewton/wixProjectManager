@@ -25,6 +25,7 @@ export interface KanbanCardProps {
   priority?: Priority;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onClick?: (id: string) => void;
 }
 
 // Maps priority levels to Wix Design System badge skins
@@ -42,6 +43,7 @@ export default function KanbanCard({
   priority = 'medium',
   onEdit,
   onDelete,
+  onClick,
 }: KanbanCardProps) {
   return (
     <Draggable draggableId={id} index={index}>
@@ -56,7 +58,10 @@ export default function KanbanCard({
           }}
         >
           <Card>
-            <Card.Content>
+            <Card.Content
+              onClick={() => onClick?.(id)}
+              style={{ cursor: onClick ? 'pointer' : 'default' }}
+            >
               <Box direction="vertical" gap={2}>
                 {/* Header row with title and action buttons */}
                 <Box align="space-between" verticalAlign="middle">

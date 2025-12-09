@@ -29,13 +29,35 @@ export interface KanbanColumnProps {
   onAddCard?: (columnId: string) => void;
   onEditCard?: (cardId: string) => void;
   onDeleteCard?: (cardId: string) => void;
+  onCardClick?: (cardId: string) => void;
 }
 
-// Color mapping for different column types
+// Color mapping for PMS workflow stages - grouped by phase
 const columnColors: Record<string, string> = {
-  todo: '#E8F4FD',
-  'in-progress': '#FFF4E5',
-  done: '#E8F5E9',
+  // Early Interest Phase (Blue tones)
+  'engage': '#E3F2FD',
+  'intent': '#BBDEFB',
+  'engagement': '#90CAF9',
+  // Qualification Phase (Purple tones)
+  'advice-call': '#E1BEE7',
+  'qualification': '#CE93D8',
+  // Quote Phase (Orange tones)
+  'straight-to-quote': '#FFE0B2',
+  'routing-pqq': '#FFCC80',
+  // Assessment Phase (Teal tones)
+  'booking': '#B2DFDB',
+  'assessment-undertaken': '#80CBC4',
+  'assessment-completed': '#4DB6AC',
+  // Sales Phase (Amber tones)
+  'sales-pitch': '#FFECB3',
+  'tender-quote': '#FFE082',
+  'supplier-survey': '#FFD54F',
+  // Approval Phase (Lime tones)
+  'go-no-go': '#DCEDC8',
+  'finance-payment': '#C5E1A5',
+  // Completion Phase (Green tones)
+  'installation': '#A5D6A7',
+  'project-completion': '#81C784',
 };
 
 export default function KanbanColumn({
@@ -45,6 +67,7 @@ export default function KanbanColumn({
   onAddCard,
   onEditCard,
   onDeleteCard,
+  onCardClick,
 }: KanbanColumnProps) {
   // Get background color based on column id, fallback to light gray
   const backgroundColor = columnColors[id] || '#F5F5F5';
@@ -52,9 +75,10 @@ export default function KanbanColumn({
   return (
     <div
       style={{
-        width: '300px',
+        width: '220px',
+        minWidth: '220px',
         minHeight: '500px',
-        padding: '16px',
+        padding: '12px',
         backgroundColor,
         borderRadius: '8px',
         flexShrink: 0,
@@ -102,6 +126,7 @@ export default function KanbanColumn({
                 priority={card.priority}
                 onEdit={onEditCard}
                 onDelete={onDeleteCard}
+                onClick={onCardClick}
               />
             ))}
             {provided.placeholder}

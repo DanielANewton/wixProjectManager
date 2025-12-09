@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
  * useContacts - Hook to fetch contacts from Wix CRM
  * 
  * This hook retrieves all contacts from the Wix CRM and transforms them
- * into a format suitable for the Kanban board.
+ * into a format suitable for the PMS Kanban board with 17 workflow stages.
  * 
  * Each contact is mapped to a card with:
  * - id: The contact's unique ID
@@ -17,8 +17,25 @@ import { useQuery } from '@tanstack/react-query';
 
 export const QUERY_CONTACTS = 'queryContacts';
 
-// Status options for categorizing contacts in Kanban columns
-export type ContactStatus = 'todo' | 'in-progress' | 'done';
+// PMS Workflow stages - 17 stages for the customer journey
+export type ContactStatus = 
+  | 'engage'
+  | 'intent'
+  | 'engagement'
+  | 'advice-call'
+  | 'qualification'
+  | 'straight-to-quote'
+  | 'routing-pqq'
+  | 'booking'
+  | 'assessment-undertaken'
+  | 'assessment-completed'
+  | 'sales-pitch'
+  | 'tender-quote'
+  | 'supplier-survey'
+  | 'go-no-go'
+  | 'finance-payment'
+  | 'installation'
+  | 'project-completion';
 
 // Structure of a contact card for the Kanban board
 export interface ContactCard {
@@ -32,32 +49,116 @@ export interface ContactCard {
 }
 
 /**
- * Determines the status (column) for a contact based on their labels
- * You can customize this logic based on your CRM setup
+ * Label to stage mapping - maps CRM labels to workflow stages
+ * Add your CRM labels here to automatically place contacts in the right stage
+ */
+const labelToStageMap: Record<string, ContactStatus> = {
+  // Stage 1: Engage - Early interest
+  'newsletter': 'engage',
+  'calculator': 'engage',
+  'plan-builder': 'engage',
+  'esc': 'engage',
+  'energy-saving': 'engage',
+  
+  // Stage 2: Intent
+  'intent': 'intent',
+  'nurture': 'intent',
+  
+  // Stage 3: Engagement - Formal enquiry
+  'enquiry': 'engagement',
+  'form-submitted': 'engagement',
+  'callback-requested': 'engagement',
+  
+  // Stage 4: Advice Call
+  'advice-call': 'advice-call',
+  'adviser-call': 'advice-call',
+  'needs-assessment': 'advice-call',
+  
+  // Stage 5: Qualification
+  'qualification': 'qualification',
+  'qualified': 'qualification',
+  
+  // Stage 6: Straight to Quote
+  'straight-to-quote': 'straight-to-quote',
+  'simple-measure': 'straight-to-quote',
+  'solar': 'straight-to-quote',
+  'windows': 'straight-to-quote',
+  
+  // Stage 7: Routing / PQQ
+  'routing': 'routing-pqq',
+  'pqq': 'routing-pqq',
+  'pre-screen': 'routing-pqq',
+  
+  // Stage 8: Booking
+  'booking': 'booking',
+  'assessment-booked': 'booking',
+  
+  // Stage 9: Assessment Undertaken
+  'assessment-undertaken': 'assessment-undertaken',
+  'assessment-in-progress': 'assessment-undertaken',
+  
+  // Stage 10: Assessment Completed
+  'assessment-completed': 'assessment-completed',
+  'report-received': 'assessment-completed',
+  
+  // Stage 11: Sales Pitch
+  'sales-pitch': 'sales-pitch',
+  'presentation': 'sales-pitch',
+  
+  // Stage 12: Tender / Quote
+  'tender': 'tender-quote',
+  'quote': 'tender-quote',
+  'proposal': 'tender-quote',
+  
+  // Stage 13: Supplier Survey
+  'supplier-survey': 'supplier-survey',
+  'survey': 'supplier-survey',
+  
+  // Stage 14: Go / No Go
+  'go-no-go': 'go-no-go',
+  'approved': 'go-no-go',
+  'contract': 'go-no-go',
+  
+  // Stage 15: Finance & Payment
+  'finance': 'finance-payment',
+  'payment': 'finance-payment',
+  
+  // Stage 16: Installation
+  'installation': 'installation',
+  'installing': 'installation',
+  
+  // Stage 17: Project Completion
+  'completed': 'project-completion',
+  'done': 'project-completion',
+  'finished': 'project-completion',
+};
+
+/**
+ * Determines the workflow stage for a contact based on their labels
+ * Checks labels against the mapping, defaults to 'engage' for new contacts
  */
 function determineStatus(contact: contacts.Contact): ContactStatus {
   const labelKeys = contact.info?.labelKeys?.items || [];
   
-  // Check for specific labels to determine status
-  // These label keys can be customized based on your CRM labels
-  if (labelKeys.some((label: string) => 
-    label.toLowerCase().includes('done') || 
-    label.toLowerCase().includes('converted') ||
-    label.toLowerCase().includes('completed')
-  )) {
-    return 'done';
+  // Check each label against our mapping
+  for (const label of labelKeys) {
+    const normalizedLabel = (label as string).toLowerCase().replace(/\s+/g, '-');
+    
+    // Direct match
+    if (labelToStageMap[normalizedLabel]) {
+      return labelToStageMap[normalizedLabel];
+    }
+    
+    // Partial match - check if label contains any of our keywords
+    for (const [keyword, stage] of Object.entries(labelToStageMap)) {
+      if (normalizedLabel.includes(keyword)) {
+        return stage;
+      }
+    }
   }
   
-  if (labelKeys.some((label: string) => 
-    label.toLowerCase().includes('progress') || 
-    label.toLowerCase().includes('active') ||
-    label.toLowerCase().includes('working')
-  )) {
-    return 'in-progress';
-  }
-  
-  // Default to 'todo' for new/unprocessed contacts
-  return 'todo';
+  // Default to 'engage' for new/untagged contacts
+  return 'engage';
 }
 
 /**
@@ -69,7 +170,8 @@ function determinePriority(contact: contacts.Contact): 'low' | 'medium' | 'high'
   if (labelKeys.some((label: string) => 
     label.toLowerCase().includes('high') || 
     label.toLowerCase().includes('urgent') ||
-    label.toLowerCase().includes('vip')
+    label.toLowerCase().includes('vip') ||
+    label.toLowerCase().includes('priority')
   )) {
     return 'high';
   }
@@ -145,4 +247,3 @@ export function useContacts() {
     refetch: query.refetch,
   };
 }
-
