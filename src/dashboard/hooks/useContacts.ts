@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
  * useContacts - Hook to fetch contacts from Wix CRM
  * 
  * This hook retrieves all contacts from the Wix CRM and transforms them
- * into a format suitable for the PMS Kanban board with 17 workflow stages.
+ * into a format suitable for the YorProject Kanban board with 17 workflow stages.
  * 
  * Each contact is mapped to a card with:
  * - id: The contact's unique ID
@@ -17,7 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 
 export const QUERY_CONTACTS = 'queryContacts';
 
-// PMS Workflow stages - 17 stages for the customer journey
+// YorProject Workflow stages - 17 stages for the customer journey
 export type ContactStatus = 
   | 'engage'
   | 'intent'

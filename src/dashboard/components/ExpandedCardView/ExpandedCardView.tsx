@@ -14,7 +14,9 @@ import { useExpandedCard } from '../../hooks/useExpandedCard.js';
  * 
  * Layout: 30/70 split
  * - Left Panel (30%): Column browser with stage selector and card list
- * - Right Panel (70%): Card details with client info, communications, and actions
+ * - Right Panel (70%): Card details with client info, communications, and activity
+ * 
+ * Data Flow: Card -> Profile (via profileId) -> ActivityLog
  * 
  * @param cardId - ID of the currently selected card
  * @param stageId - Current stage/column ID
@@ -41,11 +43,11 @@ export default function ExpandedCardView({
   onCardSelect,
   onStageChange,
 }: ExpandedCardViewProps) {
-  // Fetch card data, profile, and actions
+  // Fetch card data, profile, and activity log
   const {
     card,
     profile,
-    actions,
+    activityLog,
     isLoading,
     updateCard,
     updateProfile,
@@ -193,10 +195,10 @@ export default function ExpandedCardView({
                   onNotesChange={(notes) => updateCard({ notes })}
                 />
 
-                {/* Row C: Actions & Tabs */}
+                {/* Row C: Activity & Tabs */}
                 <ActionTabs
                   card={card}
-                  actions={actions}
+                  activityLog={activityLog}
                   onUpdateCard={updateCard}
                   onAddComment={addComment}
                 />
@@ -208,4 +210,3 @@ export default function ExpandedCardView({
     </div>
   );
 }
-

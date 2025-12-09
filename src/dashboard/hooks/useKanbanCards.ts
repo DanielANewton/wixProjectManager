@@ -1,14 +1,16 @@
 /**
  * useKanbanCards - React hook for managing Kanban cards with Wix Data
  * 
- * This hook integrates with the card, actions, and profile services
+ * This hook integrates with the profile, card, and activity log services
  * to provide a complete data layer for the Kanban board.
+ * 
+ * Data Flow: CRM Contact -> ClientProfiles -> KanbanCards -> ActivityLog
  * 
  * Features:
  * - Fetches all cards with React Query caching
  * - Provides mutations for CRUD operations
- * - Integrates with CRM contacts
- * - Tracks history on card changes
+ * - Syncs CRM contacts to profiles first, then creates cards
+ * - Tracks history in ActivityLog on card changes
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -18,28 +20,26 @@ import {
   NewKanbanCard, 
   ContactStatus,
   ClientInfo,
+  ClientProfile,
 } from '../types/kanbanCard.js';
 import * as cardService from '../services/cardService.js';
-import * as actionsService from '../services/actionsService.js';
+import * as activityLogService from '../services/activityLogService.js';
 import * as profileService from '../services/clientProfileService.js';
 
 // Query keys for React Query cache management
 export const QUERY_KEYS = {
   CARDS: 'kanbanCards',
   CARD: 'kanbanCard',
-  CARD_BY_CONTACT: 'kanbanCardByContact',
+  PROFILES: 'clientProfiles',
+  PROFILE: 'clientProfile',
+  CARDS_BY_PROFILE: 'cardsByProfile',
 } as const;
 
 /**
- * Combined card data with CRM contact info
+ * Combined card data with profile info for display
  */
 export interface EnrichedCard extends KanbanCard {
-  contact?: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    phone?: string;
-  };
+  profile?: ClientProfile;
 }
 
 /**
@@ -65,13 +65,28 @@ export function useKanbanCards() {
     },
   });
 
+  // Fetch all profiles
+  const profilesQuery = useQuery({
+    queryKey: [QUERY_KEYS.PROFILES],
+    refetchOnWindowFocus: false,
+    queryFn: async (): Promise<ClientProfile[]> => {
+      try {
+        const profiles = await profileService.getAllProfiles();
+        console.log('🗂️ Fetched profiles:', profiles.length);
+        return profiles;
+      } catch (error) {
+        console.error('🗂️ Error fetching profiles:', error);
+        throw error;
+      }
+    },
+  });
+
   // Mutation for creating a new card
   const createCardMutation = useMutation({
     mutationFn: async (card: NewKanbanCard) => {
       return cardService.createCard(card);
     },
     onSuccess: () => {
-      // Invalidate and refetch cards
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CARDS] });
     },
   });
@@ -89,11 +104,11 @@ export function useKanbanCards() {
     }) => {
       const result = await cardService.updateCard(cardId, updates);
       
-      // Log the update to history
+      // Log the update to activity log
       if (result) {
         const changedFields = Object.keys(updates);
         for (const field of changedFields) {
-          await actionsService.addHistory(
+          await activityLogService.addHistory(
             cardId,
             userId,
             `Updated ${field}`,
@@ -126,9 +141,9 @@ export function useKanbanCards() {
     }) => {
       const result = await cardService.updateCardStage(cardId, toStageId, toStageName);
       
-      // Log the stage change to history
+      // Log the stage change to activity log
       if (result) {
-        await actionsService.logStageChange(cardId, userId, fromStage, toStageName);
+        await activityLogService.logStageChange(cardId, userId, fromStage, toStageName);
       }
       
       return result;
@@ -141,9 +156,8 @@ export function useKanbanCards() {
   // Mutation for deleting a card
   const deleteCardMutation = useMutation({
     mutationFn: async (cardId: string) => {
-      // Delete related actions and profile first
-      await actionsService.deleteCardActions(cardId);
-      await profileService.deleteProfileByCardId(cardId);
+      // Delete related activity log entries first
+      await activityLogService.deleteCardEntries(cardId);
       
       // Then delete the card
       return cardService.deleteCard(cardId);
@@ -156,10 +170,12 @@ export function useKanbanCards() {
   return {
     // Query data
     cards: cardsQuery.data || [],
-    isLoading: cardsQuery.isLoading,
-    isError: cardsQuery.isError,
-    error: cardsQuery.error,
+    profiles: profilesQuery.data || [],
+    isLoading: cardsQuery.isLoading || profilesQuery.isLoading,
+    isError: cardsQuery.isError || profilesQuery.isError,
+    error: cardsQuery.error || profilesQuery.error,
     refetch: cardsQuery.refetch,
+    refetchProfiles: profilesQuery.refetch,
     
     // Mutations
     createCard: createCardMutation.mutateAsync,
@@ -191,23 +207,27 @@ export function useKanbanCard(cardId: string | null) {
 }
 
 /**
- * Hook for fetching a card by contact ID
+ * Hook for fetching cards by profile ID
  */
-export function useCardByContact(contactId: string | null) {
+export function useCardsByProfile(profileId: string | null) {
   return useQuery({
-    queryKey: [QUERY_KEYS.CARD_BY_CONTACT, contactId],
-    enabled: !!contactId,
+    queryKey: [QUERY_KEYS.CARDS_BY_PROFILE, profileId],
+    enabled: !!profileId,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      if (!contactId) return null;
-      return cardService.getCardByContactId(contactId);
+      if (!profileId) return [];
+      return cardService.getCardsByProfileId(profileId);
     },
   });
 }
 
 /**
- * Hook for creating cards from CRM contacts
- * Syncs CRM contacts with Kanban cards
+ * Hook for syncing CRM contacts to profiles and cards
+ * 
+ * New Flow: CRM Contact -> ClientProfile -> KanbanCard
+ * 1. Fetch contacts from CRM
+ * 2. Create/update ClientProfile for each contact
+ * 3. Create KanbanCard linked to the profile
  */
 export function useSyncContactsToCards() {
   const queryClient = useQueryClient();
@@ -218,51 +238,61 @@ export function useSyncContactsToCards() {
       const response = await contacts.listContacts({});
       const crmContacts = response.contacts || [];
       
-      const results: KanbanCard[] = [];
+      const results: { profile: ClientProfile; card: KanbanCard }[] = [];
       
       for (const contact of crmContacts) {
         if (!contact._id) continue;
         
-        // Check if card already exists for this contact
-        const existingCard = await cardService.getCardByContactId(contact._id);
+        // Step 1: Check if profile exists for this contact
+        let profile = await profileService.getProfileByContactId(contact._id);
         
-        if (!existingCard) {
-          // Create a new card for this contact
-          const firstName = contact.info?.name?.first || '';
-          const lastName = contact.info?.name?.last || '';
-          
-          const newCard = await cardService.createCard({
+        const firstName = contact.info?.name?.first || '';
+        const lastName = contact.info?.name?.last || '';
+        
+        const clientInfo: ClientInfo = {
+          firstName,
+          lastName,
+          email: contact.info?.emails?.items?.[0]?.email,
+          phone: contact.info?.phones?.items?.[0]?.phone,
+        };
+        
+        // Step 2: Create profile if it doesn't exist
+        if (!profile) {
+          profile = await profileService.createProfile({
             contactId: contact._id,
+            clientInfo,
+            extendedDetails: {},
+          });
+          
+          console.log('👤 Created profile for contact:', contact._id);
+        }
+        
+        if (!profile?._id) continue;
+        
+        // Step 3: Check if card exists for this profile
+        const existingCards = await cardService.getCardsByProfileId(profile._id);
+        
+        if (existingCards.length === 0) {
+          // Create a new card for this profile
+          const newCard = await cardService.createCard({
+            profileId: profile._id,
             stageId: 'engage',
             stage: '1. Engage',
           });
           
           if (newCard) {
-            // Create a profile for the card
-            const clientInfo: ClientInfo = {
-              firstName,
-              lastName,
-              email: contact.info?.emails?.items?.[0]?.email,
-              phone: contact.info?.phones?.items?.[0]?.phone,
-            };
-            
-            await profileService.createProfile({
-              cardId: newCard._id!,
-              contactId: contact._id,
-              clientInfo,
-              extendedDetails: {},
-            });
-            
-            results.push(newCard);
+            results.push({ profile, card: newCard });
+            console.log('🎴 Created card for profile:', profile._id);
           }
         }
       }
       
-      console.log('🔄 Synced contacts to cards:', results.length, 'new cards created');
+      console.log('🔄 Synced contacts:', results.length, 'new cards created');
       return results;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CARDS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PROFILES] });
     },
   });
 }
@@ -294,4 +324,3 @@ export function organizeCardsByStage(cards: KanbanCard[]): Record<ContactStatus,
   
   return organized;
 }
-

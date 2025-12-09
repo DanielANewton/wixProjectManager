@@ -5,7 +5,7 @@ import { withProviders } from '../../withProviders.js';
 import KanbanBoard from '../../components/KanbanBoard.js';
 
 /**
- * KanbanPage - PMS Master Workflow Dashboard
+ * KanbanPage - YorProject Master Workflow Dashboard
  * 
  * This page provides the main Project Management System interface with:
  * - 17 workflow stages from Engage to Project Completion
@@ -27,7 +27,7 @@ function KanbanPage() {
   return (
     <Page height="100vh">
       <Page.Header
-        title="PMS Workflow"
+        title="YorProject Workflow"
         subtitle="Master Kanban board for customer journey management"
       />
       <Page.Content>

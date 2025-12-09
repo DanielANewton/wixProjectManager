@@ -29,7 +29,7 @@ export interface KanbanBoardProps {
   onBoardChange?: (columns: ColumnData[]) => void;
 }
 
-// PMS Kanban Workflow Stages - 17 stages for the customer journey
+// YorProject Kanban Workflow Stages - 17 stages for the customer journey
 export const columnConfig = [
   { id: 'engage', title: '1. Engage' },
   { id: 'intent', title: '2. Intent' },

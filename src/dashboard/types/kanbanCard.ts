@@ -2,12 +2,14 @@
  * TypeScript interfaces for the Kanban database collections
  * 
  * These types map to three Wix Data Collections:
- * - KanbanCards: Main card data linked to CRM contacts
- * - CardActions: History and comments for each card
- * - ClientProfiles: Extended client information
+ * - ClientProfiles: Extended client information (links to CRM)
+ * - KanbanCards: Main card data (links to ClientProfiles)
+ * - ActivityLog: History and comments for each card
+ * 
+ * Data Flow: CRM Contact -> ClientProfiles -> KanbanCards -> ActivityLog
  */
 
-// Re-export the workflow stages from useContacts for consistency
+// Workflow stages for the YorProject Kanban board
 export type ContactStatus = 
   | 'engage'
   | 'intent'
@@ -80,8 +82,58 @@ export interface QuoteData {
 }
 
 /**
+ * ClientInfo - Core client information from CRM
+ */
+export interface ClientInfo {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    postcode?: string;
+    country?: string;
+  };
+  company?: string;
+  jobTitle?: string;
+}
+
+/**
+ * ExtendedDetails - Additional client details beyond CRM data
+ */
+export interface ExtendedDetails {
+  propertyType?: string;
+  propertyAge?: string;
+  currentEnergyCost?: number;
+  preferredContactMethod?: string;
+  notes?: string;
+  customFields?: Record<string, string | number | boolean>;
+}
+
+/**
+ * ClientProfile - Extended client information
+ * PRIMARY LINK TO CRM - Stored in the ClientProfiles collection
+ * 
+ * One ClientProfile per CRM Contact (1:1 relationship)
+ */
+export interface ClientProfile {
+  // Meta fields (auto-managed by Wix)
+  _id?: string;
+  _createdDate?: string;
+  _updatedDate?: string;
+  
+  // Link to CRM contact (primary reference)
+  contactId: string;
+  
+  // Client data
+  clientInfo: ClientInfo;
+  extendedDetails: ExtendedDetails;
+}
+
+/**
  * KanbanCard - Main card data stored in the KanbanCards collection
- * Links to CRM contacts via contactId
+ * Links to ClientProfiles via profileId (many cards can belong to one profile)
  */
 export interface KanbanCard {
   // Meta fields (auto-managed by Wix)
@@ -89,8 +141,8 @@ export interface KanbanCard {
   _createdDate?: string;
   _updatedDate?: string;
   
-  // Reference to CRM contact
-  contactId: string;
+  // Reference to ClientProfile (NEW: replaces contactId)
+  profileId: string;
   
   // Stage/workflow fields
   stageId: ContactStatus;
@@ -134,12 +186,12 @@ export interface KanbanCard {
 }
 
 /**
- * Action types for the CardActions collection
+ * Entry types for the ActivityLog collection
  */
-export type ActionType = 'history' | 'comment';
+export type EntryType = 'history' | 'comment';
 
 /**
- * Metadata for history actions - tracks what changed
+ * Metadata for history entries - tracks what changed
  */
 export interface HistoryMetadata {
   field?: string;
@@ -159,10 +211,10 @@ export interface CommentMetadata {
 }
 
 /**
- * CardAction - Represents a history entry or comment on a card
- * Stored in the CardActions collection
+ * ActivityLogEntry - Represents a history entry or comment on a card
+ * Stored in the ActivityLog collection (renamed from CardAction)
  */
-export interface CardAction {
+export interface ActivityLogEntry {
   // Meta fields (auto-managed by Wix)
   _id?: string;
   _createdDate?: string;
@@ -170,77 +222,33 @@ export interface CardAction {
   // Reference to parent card
   cardId: string;
   
-  // Action type distinguishes between history and comments
-  actionType: ActionType;
+  // Entry type distinguishes between history and comments
+  entryType: EntryType;
   
-  // Main content of the action
+  // Main content of the entry
   content: string;
   
   // Who performed this action
   userId: string;
   userName?: string;
   
-  // Additional data based on actionType
+  // Additional data based on entryType
   metadata?: HistoryMetadata | CommentMetadata;
-}
-
-/**
- * ClientInfo - Core client information from CRM
- */
-export interface ClientInfo {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
-  address?: {
-    street?: string;
-    city?: string;
-    postcode?: string;
-    country?: string;
-  };
-  company?: string;
-  jobTitle?: string;
-}
-
-/**
- * ExtendedDetails - Additional client details beyond CRM data
- */
-export interface ExtendedDetails {
-  propertyType?: string;
-  propertyAge?: string;
-  currentEnergyCost?: number;
-  preferredContactMethod?: string;
-  notes?: string;
-  customFields?: Record<string, string | number | boolean>;
-}
-
-/**
- * ClientProfile - Extended client information
- * Stored in the ClientProfiles collection
- */
-export interface ClientProfile {
-  // Meta fields (auto-managed by Wix)
-  _id?: string;
-  _createdDate?: string;
-  _updatedDate?: string;
-  
-  // References
-  cardId: string;
-  contactId: string;
-  
-  // Client data
-  clientInfo: ClientInfo;
-  extendedDetails: ExtendedDetails;
 }
 
 /**
  * Collection names for Wix Data operations
  */
 export const COLLECTIONS = {
-  KANBAN_CARDS: 'KanbanCards',
-  CARD_ACTIONS: 'CardActions',
   CLIENT_PROFILES: 'ClientProfiles',
+  KANBAN_CARDS: 'KanbanCards',
+  ACTIVITY_LOG: 'ActivityLog',
 } as const;
+
+/**
+ * Helper type for creating new profiles (without auto-generated fields)
+ */
+export type NewClientProfile = Omit<ClientProfile, '_id' | '_createdDate' | '_updatedDate'>;
 
 /**
  * Helper type for creating new cards (without auto-generated fields)
@@ -248,12 +256,14 @@ export const COLLECTIONS = {
 export type NewKanbanCard = Omit<KanbanCard, '_id' | '_createdDate' | '_updatedDate'>;
 
 /**
- * Helper type for creating new actions (without auto-generated fields)
+ * Helper type for creating new activity log entries (without auto-generated fields)
  */
-export type NewCardAction = Omit<CardAction, '_id' | '_createdDate'>;
+export type NewActivityLogEntry = Omit<ActivityLogEntry, '_id' | '_createdDate'>;
 
-/**
- * Helper type for creating new profiles (without auto-generated fields)
- */
-export type NewClientProfile = Omit<ClientProfile, '_id' | '_createdDate' | '_updatedDate'>;
-
+// Legacy aliases for backwards compatibility during migration
+/** @deprecated Use ActivityLogEntry instead */
+export type CardAction = ActivityLogEntry;
+/** @deprecated Use EntryType instead */
+export type ActionType = EntryType;
+/** @deprecated Use NewActivityLogEntry instead */
+export type NewCardAction = NewActivityLogEntry;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Text, InputArea, Button, Avatar, Divider } from '@wix/design-system';
-import { CardAction, CommentMetadata } from '../../../types/kanbanCard.js';
+import { ActivityLogEntry, CommentMetadata } from '../../../types/kanbanCard.js';
 
 /**
  * CommentsTab - Threaded comments from users and boards
@@ -10,12 +10,12 @@ import { CardAction, CommentMetadata } from '../../../types/kanbanCard.js';
  * - Add new comments
  * - Show if comment is from external board
  * 
- * @param comments - Comment action entries
+ * @param comments - Comment entries from ActivityLog
  * @param onAddComment - Callback to add a new comment
  */
 
 export interface CommentsTabProps {
-  comments: CardAction[];
+  comments: ActivityLogEntry[];
   onAddComment: (content: string) => void;
 }
 
@@ -86,7 +86,7 @@ export default function CommentsTab({ comments, onAddComment }: CommentsTabProps
  * CommentItem - Individual comment display
  */
 interface CommentItemProps {
-  comment: CardAction;
+  comment: ActivityLogEntry;
 }
 
 function CommentItem({ comment }: CommentItemProps) {
@@ -136,4 +136,3 @@ function CommentItem({ comment }: CommentItemProps) {
     </Box>
   );
 }
-

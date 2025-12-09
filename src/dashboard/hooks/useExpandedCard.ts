@@ -3,9 +3,11 @@
  * 
  * This hook provides:
  * - Card data fetching
- * - Profile data fetching
- * - Actions (history/comments) fetching
+ * - Profile data fetching (via card's profileId)
+ * - Activity log (history/comments) fetching
  * - Mutation functions for updates
+ * 
+ * Data Flow: Card -> Profile (via profileId) -> ActivityLog entries
  * 
  * @param cardId - The ID of the card to fetch
  */
@@ -14,18 +16,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   KanbanCard, 
   ClientProfile, 
-  CardAction,
+  ActivityLogEntry,
   ClientInfo,
 } from '../types/kanbanCard.js';
 import * as cardService from '../services/cardService.js';
 import * as profileService from '../services/clientProfileService.js';
-import * as actionsService from '../services/actionsService.js';
+import * as activityLogService from '../services/activityLogService.js';
 
 // Query keys
 const QUERY_KEYS = {
   EXPANDED_CARD: 'expandedCard',
   CARD_PROFILE: 'cardProfile',
-  CARD_ACTIONS: 'cardActions',
+  ACTIVITY_LOG: 'activityLog',
 } as const;
 
 /**
@@ -35,13 +37,13 @@ export interface UseExpandedCardResult {
   // Data
   card: KanbanCard | null;
   profile: ClientProfile | null;
-  actions: CardAction[];
+  activityLog: ActivityLogEntry[];
   
   // Loading states
   isLoading: boolean;
   isCardLoading: boolean;
   isProfileLoading: boolean;
-  isActionsLoading: boolean;
+  isActivityLoading: boolean;
   
   // Error states
   isError: boolean;
@@ -56,7 +58,7 @@ export interface UseExpandedCardResult {
   // Refetch functions
   refetchCard: () => void;
   refetchProfile: () => void;
-  refetchActions: () => void;
+  refetchActivity: () => void;
 }
 
 export function useExpandedCard(cardId: string): UseExpandedCardResult {
@@ -74,27 +76,31 @@ export function useExpandedCard(cardId: string): UseExpandedCardResult {
     },
   });
 
-  // Fetch profile data
+  // Get profileId from the card
+  const profileId = cardQuery.data?.profileId;
+
+  // Fetch profile data using the card's profileId
   const profileQuery = useQuery({
-    queryKey: [QUERY_KEYS.CARD_PROFILE, cardId],
-    enabled: !!cardId,
+    queryKey: [QUERY_KEYS.CARD_PROFILE, profileId],
+    enabled: !!profileId,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const profile = await profileService.getProfileByCardId(cardId);
-      console.log('🔍 Fetched card profile:', cardId);
+      if (!profileId) return null;
+      const profile = await profileService.getProfileById(profileId);
+      console.log('🔍 Fetched profile for card:', cardId, 'profileId:', profileId);
       return profile;
     },
   });
 
-  // Fetch actions (history and comments)
-  const actionsQuery = useQuery({
-    queryKey: [QUERY_KEYS.CARD_ACTIONS, cardId],
+  // Fetch activity log (history and comments)
+  const activityQuery = useQuery({
+    queryKey: [QUERY_KEYS.ACTIVITY_LOG, cardId],
     enabled: !!cardId,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const actions = await actionsService.getCardActions(cardId);
-      console.log('🔍 Fetched card actions:', cardId, 'count:', actions.length);
-      return actions;
+      const entries = await activityLogService.getCardEntries(cardId);
+      console.log('🔍 Fetched activity log:', cardId, 'count:', entries.length);
+      return entries;
     },
   });
 
@@ -119,7 +125,7 @@ export function useExpandedCard(cardId: string): UseExpandedCardResult {
       return null;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CARD_PROFILE, cardId] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CARD_PROFILE, profileId] });
     },
   });
 
@@ -130,10 +136,10 @@ export function useExpandedCard(cardId: string): UseExpandedCardResult {
       const userId = 'current-user';
       const userName = 'Current User';
       
-      return actionsService.addComment(cardId, userId, userName, content);
+      return activityLogService.addComment(cardId, userId, userName, content);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CARD_ACTIONS, cardId] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ACTIVITY_LOG, cardId] });
     },
   });
 
@@ -143,31 +149,31 @@ export function useExpandedCard(cardId: string): UseExpandedCardResult {
       // TODO: Get actual user ID from auth context
       const userId = 'current-user';
       
-      return actionsService.addHistory(cardId, userId, content);
+      return activityLogService.addHistory(cardId, userId, content);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CARD_ACTIONS, cardId] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ACTIVITY_LOG, cardId] });
     },
   });
 
   // Combined loading state
-  const isLoading = cardQuery.isLoading || profileQuery.isLoading || actionsQuery.isLoading;
+  const isLoading = cardQuery.isLoading || profileQuery.isLoading || activityQuery.isLoading;
 
   // Combined error state
-  const isError = cardQuery.isError || profileQuery.isError || actionsQuery.isError;
-  const error = cardQuery.error || profileQuery.error || actionsQuery.error;
+  const isError = cardQuery.isError || profileQuery.isError || activityQuery.isError;
+  const error = cardQuery.error || profileQuery.error || activityQuery.error;
 
   return {
     // Data
     card: cardQuery.data || null,
     profile: profileQuery.data || null,
-    actions: actionsQuery.data || [],
+    activityLog: activityQuery.data || [],
     
     // Loading states
     isLoading,
     isCardLoading: cardQuery.isLoading,
     isProfileLoading: profileQuery.isLoading,
-    isActionsLoading: actionsQuery.isLoading,
+    isActivityLoading: activityQuery.isLoading,
     
     // Error states
     isError,
@@ -190,7 +196,10 @@ export function useExpandedCard(cardId: string): UseExpandedCardResult {
     // Refetch functions
     refetchCard: () => cardQuery.refetch(),
     refetchProfile: () => profileQuery.refetch(),
-    refetchActions: () => actionsQuery.refetch(),
+    refetchActivity: () => activityQuery.refetch(),
   };
 }
 
+// Legacy aliases for backwards compatibility
+/** @deprecated Use activityLog instead of actions */
+export type { UseExpandedCardResult };

@@ -1,38 +1,41 @@
 /**
- * Card Service - CRUD operations for the KanbanCards collection
+ * Card Service - Frontend wrapper for card Web Methods
  * 
- * This service handles all data operations for Kanban cards:
- * - Creating new cards linked to CRM contacts
- * - Fetching cards by ID or contact ID
- * - Updating card fields
- * - Deleting cards (cascades to related actions and profiles)
+ * This service provides a clean interface to the backend card operations.
+ * It imports and calls the Web Methods defined in src/backend/cards.web.ts
+ * 
+ * Data Flow: CRM Contact -> ClientProfiles -> KanbanCards -> ActivityLog
+ * Note: Cards now link to profiles via profileId (not contactId)
  */
 
-import { items } from '@wix/data';
+import {
+  createCard as backendCreateCard,
+  getCardById as backendGetCardById,
+  getCardsByProfileId as backendGetCardsByProfileId,
+  getCardsByStage as backendGetCardsByStage,
+  getAllCards as backendGetAllCards,
+  updateCard as backendUpdateCard,
+  updateCardStage as backendUpdateCardStage,
+  deleteCard as backendDeleteCard,
+  upsertCardForProfile as backendUpsertCardForProfile,
+} from '../../backend/cards.web.js';
+
 import { 
   KanbanCard, 
   NewKanbanCard, 
-  COLLECTIONS,
-  ContactStatus 
+  ContactStatus,
 } from '../types/kanbanCard.js';
 
 /**
- * Creates a new Kanban card linked to a CRM contact
+ * Creates a new Kanban card linked to a ClientProfile
  * 
  * @param card - The card data to insert (without auto-generated fields)
  * @returns The created card with _id and timestamps
  */
-export async function createCard(card: NewKanbanCard): Promise<KanbanCard> {
+export async function createCard(card: NewKanbanCard): Promise<KanbanCard | null> {
   try {
-    const result = await items.insertDataItemReference({
-      dataCollectionId: COLLECTIONS.KANBAN_CARDS,
-      dataItem: {
-        data: card,
-      },
-    });
-    
-    console.log('🎴 Card created:', result.dataItem?._id);
-    return result.dataItem?.data as KanbanCard;
+    const result = await backendCreateCard(card);
+    return result?.data as KanbanCard || null;
   } catch (error) {
     console.error('🎴 Error creating card:', error);
     throw error;
@@ -47,11 +50,8 @@ export async function createCard(card: NewKanbanCard): Promise<KanbanCard> {
  */
 export async function getCardById(cardId: string): Promise<KanbanCard | null> {
   try {
-    const result = await items.getDataItem(cardId, {
-      dataCollectionId: COLLECTIONS.KANBAN_CARDS,
-    });
-    
-    return result.dataItem?.data as KanbanCard || null;
+    const result = await backendGetCardById(cardId);
+    return result?.data as KanbanCard || null;
   } catch (error) {
     console.error('🎴 Error fetching card:', error);
     return null;
@@ -59,26 +59,18 @@ export async function getCardById(cardId: string): Promise<KanbanCard | null> {
 }
 
 /**
- * Fetches a card by its associated CRM contact ID
+ * Fetches all cards for a specific profile
  * 
- * @param contactId - The CRM contact ID
- * @returns The card data or null if not found
+ * @param profileId - The ClientProfile ID
+ * @returns Array of cards linked to that profile
  */
-export async function getCardByContactId(contactId: string): Promise<KanbanCard | null> {
+export async function getCardsByProfileId(profileId: string): Promise<KanbanCard[]> {
   try {
-    const result = await items.queryDataItems({
-      dataCollectionId: COLLECTIONS.KANBAN_CARDS,
-      query: {
-        filter: { contactId },
-        paging: { limit: 1 },
-      },
-    });
-    
-    const card = result.dataItems?.[0]?.data as KanbanCard;
-    return card || null;
+    const results = await backendGetCardsByProfileId(profileId);
+    return (results || []).map(item => item.data as KanbanCard);
   } catch (error) {
-    console.error('🎴 Error fetching card by contact:', error);
-    return null;
+    console.error('🎴 Error fetching cards by profile:', error);
+    return [];
   }
 }
 
@@ -90,14 +82,8 @@ export async function getCardByContactId(contactId: string): Promise<KanbanCard 
  */
 export async function getCardsByStage(stageId: ContactStatus): Promise<KanbanCard[]> {
   try {
-    const result = await items.queryDataItems({
-      dataCollectionId: COLLECTIONS.KANBAN_CARDS,
-      query: {
-        filter: { stageId },
-      },
-    });
-    
-    return (result.dataItems || []).map(item => item.data as KanbanCard);
+    const results = await backendGetCardsByStage(stageId);
+    return (results || []).map(item => item.data as KanbanCard);
   } catch (error) {
     console.error('🎴 Error fetching cards by stage:', error);
     return [];
@@ -111,13 +97,9 @@ export async function getCardsByStage(stageId: ContactStatus): Promise<KanbanCar
  */
 export async function getAllCards(): Promise<KanbanCard[]> {
   try {
-    const result = await items.queryDataItems({
-      dataCollectionId: COLLECTIONS.KANBAN_CARDS,
-      query: {},
-    });
-    
-    console.log('🎴 Fetched all cards:', result.dataItems?.length || 0);
-    return (result.dataItems || []).map(item => item.data as KanbanCard);
+    const results = await backendGetAllCards();
+    console.log('🎴 Fetched all cards:', results?.length || 0);
+    return (results || []).map(item => item.data as KanbanCard);
   } catch (error) {
     console.error('🎴 Error fetching all cards:', error);
     return [];
@@ -136,26 +118,8 @@ export async function updateCard(
   updates: Partial<KanbanCard>
 ): Promise<KanbanCard | null> {
   try {
-    // First fetch the existing card
-    const existing = await getCardById(cardId);
-    if (!existing) {
-      console.error('🎴 Card not found for update:', cardId);
-      return null;
-    }
-    
-    // Merge updates with existing data
-    const updatedData = { ...existing, ...updates };
-    
-    const result = await items.updateDataItem(cardId, {
-      dataCollectionId: COLLECTIONS.KANBAN_CARDS,
-      dataItem: {
-        _id: cardId,
-        data: updatedData,
-      },
-    });
-    
-    console.log('🎴 Card updated:', cardId);
-    return result.dataItem?.data as KanbanCard;
+    const result = await backendUpdateCard(cardId, updates);
+    return result?.data as KanbanCard || null;
   } catch (error) {
     console.error('🎴 Error updating card:', error);
     throw error;
@@ -175,27 +139,25 @@ export async function updateCardStage(
   newStageId: ContactStatus,
   newStageName: string
 ): Promise<KanbanCard | null> {
-  return updateCard(cardId, {
-    stageId: newStageId,
-    stage: newStageName,
-  });
+  try {
+    const result = await backendUpdateCardStage(cardId, newStageId, newStageName);
+    return result?.data as KanbanCard || null;
+  } catch (error) {
+    console.error('🎴 Error updating card stage:', error);
+    throw error;
+  }
 }
 
 /**
  * Deletes a card by its ID
- * Note: This should also trigger deletion of related actions and profiles
+ * Note: Related ActivityLog entries should also be deleted
  * 
  * @param cardId - The ID of the card to delete
  * @returns True if deletion was successful
  */
 export async function deleteCard(cardId: string): Promise<boolean> {
   try {
-    await items.removeDataItem(cardId, {
-      dataCollectionId: COLLECTIONS.KANBAN_CARDS,
-    });
-    
-    console.log('🎴 Card deleted:', cardId);
-    return true;
+    return await backendDeleteCard(cardId);
   } catch (error) {
     console.error('🎴 Error deleting card:', error);
     return false;
@@ -203,37 +165,27 @@ export async function deleteCard(cardId: string): Promise<boolean> {
 }
 
 /**
- * Creates or updates a card for a contact
- * If a card already exists for the contact, it updates it
+ * Creates or updates a card for a profile
+ * If a card already exists for the profile, it updates it
  * Otherwise, it creates a new card
  * 
- * @param contactId - The CRM contact ID
+ * @param profileId - The ClientProfile ID
  * @param cardData - The card data
  * @returns The created or updated card
  */
-export async function upsertCardForContact(
-  contactId: string,
-  cardData: Partial<NewKanbanCard>
+export async function upsertCardForProfile(
+  profileId: string,
+  cardData: Partial<Omit<NewKanbanCard, 'profileId'>>
 ): Promise<KanbanCard | null> {
   try {
-    const existingCard = await getCardByContactId(contactId);
-    
-    if (existingCard && existingCard._id) {
-      // Update existing card
-      return updateCard(existingCard._id, cardData);
-    } else {
-      // Create new card
-      const newCard: NewKanbanCard = {
-        contactId,
-        stageId: cardData.stageId || 'engage',
-        stage: cardData.stage || '1. Engage',
-        ...cardData,
-      };
-      return createCard(newCard);
-    }
+    const result = await backendUpsertCardForProfile(profileId, {
+      stageId: cardData.stageId || 'engage',
+      stage: cardData.stage || '1. Engage',
+      ...cardData,
+    });
+    return result?.data as KanbanCard || null;
   } catch (error) {
     console.error('🎴 Error upserting card:', error);
     throw error;
   }
 }
-

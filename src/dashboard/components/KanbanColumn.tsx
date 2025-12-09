@@ -32,32 +32,43 @@ export interface KanbanColumnProps {
   onCardClick?: (cardId: string) => void;
 }
 
-// Color mapping for PMS workflow stages - grouped by phase
+// Modern clean palette - Soft pastels for a professional, easy-to-read look
+const PALETTE = {
+  blue: '#E3F2FD',      // Very light blue
+  purple: '#F3E5F5',    // Very light purple
+  orange: '#FFF3E0',    // Very light orange
+  teal: '#E0F2F1',      // Very light teal
+  yellow: '#FFFDE7',    // Very light yellow
+  green: '#E8F5E9',     // Very light green
+  gray: '#F5F5F5',      // Neutral gray
+};
+
+// Color mapping for YorProject workflow stages - grouped by phase
 const columnColors: Record<string, string> = {
-  // Early Interest Phase (Blue tones)
-  'engage': '#E3F2FD',
-  'intent': '#BBDEFB',
-  'engagement': '#90CAF9',
-  // Qualification Phase (Purple tones)
-  'advice-call': '#E1BEE7',
-  'qualification': '#CE93D8',
-  // Quote Phase (Orange tones)
-  'straight-to-quote': '#FFE0B2',
-  'routing-pqq': '#FFCC80',
-  // Assessment Phase (Teal tones)
-  'booking': '#B2DFDB',
-  'assessment-undertaken': '#80CBC4',
-  'assessment-completed': '#4DB6AC',
-  // Sales Phase (Amber tones)
-  'sales-pitch': '#FFECB3',
-  'tender-quote': '#FFE082',
-  'supplier-survey': '#FFD54F',
-  // Approval Phase (Lime tones)
-  'go-no-go': '#DCEDC8',
-  'finance-payment': '#C5E1A5',
-  // Completion Phase (Green tones)
-  'installation': '#A5D6A7',
-  'project-completion': '#81C784',
+  // Early Interest Phase
+  'engage': PALETTE.blue,
+  'intent': PALETTE.blue,
+  'engagement': PALETTE.blue,
+  // Qualification Phase
+  'advice-call': PALETTE.purple,
+  'qualification': PALETTE.purple,
+  // Quote Phase
+  'straight-to-quote': PALETTE.orange,
+  'routing-pqq': PALETTE.orange,
+  // Assessment Phase
+  'booking': PALETTE.teal,
+  'assessment-undertaken': PALETTE.teal,
+  'assessment-completed': PALETTE.teal,
+  // Sales Phase
+  'sales-pitch': PALETTE.yellow,
+  'tender-quote': PALETTE.yellow,
+  'supplier-survey': PALETTE.yellow,
+  // Approval Phase
+  'go-no-go': PALETTE.green,
+  'finance-payment': PALETTE.green,
+  // Completion Phase
+  'installation': PALETTE.green,
+  'project-completion': PALETTE.green,
 };
 
 export default function KanbanColumn({
@@ -69,8 +80,8 @@ export default function KanbanColumn({
   onDeleteCard,
   onCardClick,
 }: KanbanColumnProps) {
-  // Get background color based on column id, fallback to light gray
-  const backgroundColor = columnColors[id] || '#F5F5F5';
+  // Get background color based on column id, fallback to neutral gray
+  const backgroundColor = columnColors[id] || PALETTE.gray;
 
   return (
     <div
@@ -82,6 +93,7 @@ export default function KanbanColumn({
         backgroundColor,
         borderRadius: '8px',
         flexShrink: 0,
+        color: '#0E191A', // Always dark text for light pastel backgrounds
       }}
     >
       {/* Column header with title and add button */}
@@ -93,7 +105,7 @@ export default function KanbanColumn({
         {onAddCard && (
           <IconButton
             size="small"
-            skin="inverted"
+            skin="transparent"
             onClick={() => onAddCard(id)}
           >
             <Icons.Add />

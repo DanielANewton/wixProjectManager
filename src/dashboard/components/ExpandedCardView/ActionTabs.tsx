@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Tabs } from '@wix/design-system';
-import { KanbanCard, CardAction } from '../../types/kanbanCard.js';
+import { KanbanCard, ActivityLogEntry } from '../../types/kanbanCard.js';
 import HistoryTab from './tabs/HistoryTab.js';
 import CommentsTab from './tabs/CommentsTab.js';
 import QualificationTab from './tabs/QualificationTab.js';
@@ -12,22 +12,22 @@ import SalesTab from './tabs/SalesTab.js';
  * ActionTabs - Row C of the expanded card view
  * 
  * Tabbed interface with 6 tabs:
- * - History: Read-only log of changes
- * - Comments: Threaded comments from users/boards
+ * - History: Read-only log of changes from ActivityLog
+ * - Comments: Threaded comments from ActivityLog
  * - Qualification: Tags and form data
  * - Assessment: Portal actions and status
  * - Tender: Tender submission form
  * - Sales: Invoice, quotes, and compliance
  * 
  * @param card - Current card data
- * @param actions - History and comments for the card
+ * @param activityLog - History and comments for the card (from ActivityLog collection)
  * @param onUpdateCard - Callback to update card fields
  * @param onAddComment - Callback to add a new comment
  */
 
 export interface ActionTabsProps {
   card: KanbanCard | null;
-  actions: CardAction[];
+  activityLog: ActivityLogEntry[];
   onUpdateCard: (updates: Partial<KanbanCard>) => void;
   onAddComment: (content: string) => void;
 }
@@ -36,20 +36,20 @@ type TabId = 'history' | 'comments' | 'qualification' | 'assessment' | 'tender' 
 
 export default function ActionTabs({
   card,
-  actions,
+  activityLog,
   onUpdateCard,
   onAddComment,
 }: ActionTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>('history');
 
-  // Split actions into history and comments
-  const historyActions = actions.filter(a => a.actionType === 'history');
-  const commentActions = actions.filter(a => a.actionType === 'comment');
+  // Split activity log into history and comments based on entryType
+  const historyEntries = activityLog.filter(entry => entry.entryType === 'history');
+  const commentEntries = activityLog.filter(entry => entry.entryType === 'comment');
 
   // Tab configuration
   const tabs = [
-    { id: 'history', title: 'History', count: historyActions.length },
-    { id: 'comments', title: 'Comments', count: commentActions.length },
+    { id: 'history', title: 'History', count: historyEntries.length },
+    { id: 'comments', title: 'Comments', count: commentEntries.length },
     { id: 'qualification', title: 'Qualification' },
     { id: 'assessment', title: 'Assessment' },
     { id: 'tender', title: 'Tender', count: card?.tenders?.length },
@@ -60,11 +60,11 @@ export default function ActionTabs({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'history':
-        return <HistoryTab actions={historyActions} />;
+        return <HistoryTab entries={historyEntries} />;
       case 'comments':
         return (
           <CommentsTab
-            comments={commentActions}
+            comments={commentEntries}
             onAddComment={onAddComment}
           />
         );
@@ -157,4 +157,3 @@ export default function ActionTabs({
     </Box>
   );
 }
-
