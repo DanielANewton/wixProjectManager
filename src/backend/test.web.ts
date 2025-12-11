@@ -1,7 +1,7 @@
 import { webMethod, Permissions } from '@wix/web-methods';
 import { items } from '@wix/data';
+import { auth } from '@wix/essentials'; // <--- 1. Import auth from essentials
 
-// Using the namespace we saw in your logs
 const COLLECTION_ID = '@daniel02231/project-manager-v0/KanbanCards';
 
 export const testConnection = webMethod(
@@ -13,36 +13,41 @@ export const testConnection = webMethod(
       logs.push(`${msg} ${data ? JSON.stringify(data) : ''}`);
     };
 
+    // 2. Create elevated versions of the methods you need
+    const elevatedInsert = auth.elevate(items.insert);
+    const elevatedQuery = auth.elevate(items.query);
+    const elevatedRemove = auth.elevate(items.remove);
+
     try {
       log('🚀 Starting connection test...');
       log('📂 Target Collection:', COLLECTION_ID);
 
-      // 1. Try to Insert
       const testItem = {
         profileId: 'test-profile-id',
         stageId: 'engage',
         stage: 'Test Stage',
-        notes: 'Connection Test Item',
-        _createdDate: new Date()
+        notes: 'Connection Test Item'
+        // Note: You do not need to manually set _createdDate, Wix does this automatically
       };
 
       log('📝 Attempting insert...', testItem);
       
-      const insertResult = await items.insert(COLLECTION_ID, testItem);
+      // 3. Use the elevated function instead of the standard one
+      const insertResult = await elevatedInsert(COLLECTION_ID, testItem);
       log('✅ Insert successful:', insertResult);
 
-      // 2. Try to Query
       log('🔍 Attempting query...');
-      const queryResult = await items.query(COLLECTION_ID)
-        .limit(1)
-        .find();
+      // 4. Note: elevate() wraps the *entire* builder chain for query is tricky, 
+      // sometimes it's easier to elevate a helper function that does the query.
+      // However, for simple calls, you can try passing the builder logic or elevating a specific query function.
+      // A cleaner way for queries is to wrap the specific query logic in a helper function and elevate THAT.
+      const queryResult = await queryWithPrivileges(COLLECTION_ID);
       
       log('✅ Query successful. Found items:', queryResult.items.length);
 
-      // 3. Try to Remove (cleanup)
       if (insertResult._id) {
         log('🗑️ Attempting cleanup delete...', insertResult._id);
-        await items.remove(COLLECTION_ID, insertResult._id);
+        await elevatedRemove(COLLECTION_ID, insertResult._id);
         log('✅ Cleanup successful');
       }
 
@@ -58,9 +63,12 @@ export const testConnection = webMethod(
     } catch (error: any) {
       log('❌ TEST FAILED');
       log('Error Name:', error.name);
-      log('Error Message:', error.message);
-      log('Error Code:', error.code);
-      log('Full Error:', error);
+      log('Error Message:', error.message); 
+      
+      // Common Error Check
+      if (error.code === 'WDE0025') {
+         log('💡 TIP: This error usually means the Collection ID is wrong or the collection hasn\'t been provisioned yet. Did you run "npm run generate" to create the Data Collection Extension?');
+      }
 
       return {
         success: false,
@@ -68,10 +76,15 @@ export const testConnection = webMethod(
         error: {
           message: error.message,
           code: error.code,
-          details: error.details,
           stack: error.stack
         }
       };
     }
   }
 );
+
+// Helper function to handle the query builder chain cleanly under elevation
+async function _queryCollection(collectionId: string) {
+  return items.query(collectionId).limit(1).find();
+}
+const queryWithPrivileges = auth.elevate(_queryCollection);
