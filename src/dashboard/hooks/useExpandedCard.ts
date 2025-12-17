@@ -22,6 +22,7 @@ import {
 import * as cardService from '../services/cardService.js';
 import * as profileService from '../services/clientProfileService.js';
 import * as activityLogService from '../services/activityLogService.js';
+import { useCurrentUser } from './useCurrentUser.js';
 
 // Query keys
 const QUERY_KEYS = {
@@ -63,6 +64,10 @@ export interface UseExpandedCardResult {
 
 export function useExpandedCard(cardId: string): UseExpandedCardResult {
   const queryClient = useQueryClient();
+  
+  // Get current user info for recording who makes changes
+  // Includes userPhoto for displaying avatars in comments/history
+  const { userId, userName, userPhoto } = useCurrentUser();
 
   // Fetch card data
   const cardQuery = useQuery({
@@ -130,13 +135,12 @@ export function useExpandedCard(cardId: string): UseExpandedCardResult {
   });
 
   // Mutation: Add comment
+  // Uses current user info from useCurrentUser hook for record keeping
+  // Includes userPhoto for displaying avatars alongside comments
   const addCommentMutation = useMutation({
     mutationFn: async (content: string) => {
-      // TODO: Get actual user ID and name from auth context
-      const userId = 'current-user';
-      const userName = 'Current User';
-      
-      return activityLogService.addComment(cardId, userId, userName, content);
+      // Use real user ID, name, and photo from auth
+      return activityLogService.addComment(cardId, userId, userName, content, userPhoto);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ACTIVITY_LOG, cardId] });
@@ -144,12 +148,12 @@ export function useExpandedCard(cardId: string): UseExpandedCardResult {
   });
 
   // Mutation: Add history entry
+  // Uses current user info from useCurrentUser hook for record keeping
+  // Includes userName and userPhoto for audit trail
   const addHistoryMutation = useMutation({
     mutationFn: async (content: string) => {
-      // TODO: Get actual user ID from auth context
-      const userId = 'current-user';
-      
-      return activityLogService.addHistory(cardId, userId, content);
+      // Use real user ID, name, and photo from auth
+      return activityLogService.addHistory(cardId, userId, content, userName, userPhoto);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ACTIVITY_LOG, cardId] });

@@ -186,6 +186,10 @@ export default function ExpandedCardView({
                   profile={profile}
                   card={card}
                   onUpdateProfile={updateProfile}
+                  onUpdateCard={(updates) => {
+                    if (!card?._id) return;
+                    updateCard(updates);
+                  }}
                 />
 
                 {/* Row B: Communications Grid */}

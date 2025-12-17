@@ -89,8 +89,15 @@ export default function QualificationTab({
       <Box direction="vertical" gap={3}>
         <Text size="small" weight="bold">Interest Tags</Text>
         
-        {/* Selected Tags */}
-        <Box gap={2} wrap="wrap">
+        {/* Selected Tags - tag cloud with full text display */}
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '8px',
+            minHeight: '32px',
+          }}
+        >
           {tags.map((tag) => (
             <Tag
               key={tag}
@@ -98,6 +105,7 @@ export default function QualificationTab({
               removable
               onRemove={() => handleToggleTag(tag)}
               theme="dark"
+              size="small"
             >
               {tag}
             </Tag>
@@ -105,23 +113,30 @@ export default function QualificationTab({
           {tags.length === 0 && (
             <Text size="small" secondary>No tags selected</Text>
           )}
-        </Box>
+        </div>
 
         {/* Available Tags Cloud */}
         <Box direction="vertical" gap={2}>
           <Text size="tiny" secondary>Click to add tags:</Text>
-          <Box gap={2} wrap="wrap">
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+            }}
+          >
             {AVAILABLE_TAGS.filter(t => !tags.includes(t)).map((tag) => (
               <Tag
                 key={tag}
                 id={tag}
                 onClick={() => handleToggleTag(tag)}
                 theme="light"
+                size="small"
               >
                 {tag}
               </Tag>
             ))}
-          </Box>
+          </div>
         </Box>
 
         {/* Custom Tag Input */}
@@ -157,7 +172,8 @@ export default function QualificationTab({
             align="center"
           >
             <Box direction="vertical" align="center" gap={2}>
-              <Icons.FormFieldTextArea />
+              {/* Using Text icon as placeholder for empty form state */}
+              <Icons.Document />
               <Text secondary size="small">
                 No qualification form data yet
               </Text>

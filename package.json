@@ -5,9 +5,11 @@
     "@tanstack/react-query": "^4.36.1",
     "@wix/app-management": "^1.0.0",
     "@wix/crm": "^1.0.1262",
+    "@wix/dashboard": "^1.0.0",
     "@wix/data": "^1.0.0",
     "@wix/design-system": "^1.111.0",
     "@wix/essentials": "^1.0.0",
+    "@wix/members": "^1.0.0",
     "@wix/web-methods": "^1.0.0",
     "@wix/wix-ui-icons-common": "^3.0.34",
     "react-beautiful-dnd": "^13.1.1"

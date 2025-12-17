@@ -3,6 +3,10 @@ import { Button, Box, Text, Loader, Card, Input, Divider } from '@wix/design-sys
 import { sayHello, testInsert, testQuery, testDelete } from '../../../backend/test.web.js';
 import { multiply } from '../../../backend/generate-web-1.web.js';
 import { insertItemLocal } from '../../utils/dataTestUtils.js';
+import { createClient } from '@wix/sdk';
+// @ts-ignore - @wix/dashboard types not fully available
+import { dashboard } from '@wix/dashboard';
+import { members } from '@wix/members';
 
 /**
  * Test Page for Data Collection Operations
@@ -25,6 +29,8 @@ export default function TestPage() {
     multiply: false,
     hello: false,
     token: false,
+    currentUser: false,
+    dashboardUser: false,
     insert: false,
     insertLocal: false,
     query: false,
@@ -36,6 +42,8 @@ export default function TestPage() {
     multiply: any;
     hello: any;
     token: any;
+    currentUser: any;
+    dashboardUser: any;
     insert: any;
     insertLocal: any;
     query: any;
@@ -44,6 +52,8 @@ export default function TestPage() {
     multiply: null,
     hello: null,
     token: null,
+    currentUser: null,
+    dashboardUser: null,
     insert: null,
     insertLocal: null,
     query: null,
@@ -123,6 +133,114 @@ export default function TestPage() {
       setResult('token', { success: false, logs: ['Client error: ' + error.message] });
     } finally {
       setLoading('token', false);
+    }
+  };
+
+  /**
+   * Get the currently logged-in user information
+   * Useful for record keeping and audit logs
+   */
+  const runGetCurrentUser = async () => {
+    setLoading('currentUser', true);
+    setResult('currentUser', null);
+    try {
+      const backend: any = await import('../../../backend/test.web.js');
+      const response = await backend.getCurrentUser();
+      setResult('currentUser', response);
+    } catch (error: any) {
+      setResult('currentUser', { success: false, logs: ['Client error: ' + error.message] });
+    } finally {
+      setLoading('currentUser', false);
+    }
+  };
+
+  /**
+   * Get the dashboard user using the Dashboard SDK authentication strategy
+   * 
+   * This uses createClient with dashboard.host() and dashboard.auth() which
+   * provides the authentication context for the currently logged-in Wix user
+   * in the dashboard. This is the correct approach for dashboard pages.
+   */
+  const runGetDashboardUser = async () => {
+    setLoading('dashboardUser', true);
+    setResult('dashboardUser', null);
+    
+    const logs: string[] = [];
+    
+    try {
+      logs.push('Step 1: Creating WixClient with dashboard.host() and dashboard.auth()...');
+      
+      // Create a WixClient configured for dashboard authentication
+      // This combines app permissions with the current dashboard user's permissions
+      const dashboardClient = createClient({
+        host: dashboard.host(),
+        auth: dashboard.auth(),
+        modules: { members },
+      });
+      
+      logs.push('Step 2: WixClient created successfully');
+      logs.push('Step 3: Calling members.getCurrentMember({ fieldsets: ["FULL"] })...');
+      
+      // Call the members API to get the current member's details
+      // Using 'as any' to bypass strict typing - the runtime API works correctly
+      const response = await (dashboardClient.members as any).getCurrentMember({
+        fieldsets: ['FULL']
+      });
+      
+      logs.push('Step 4: API call successful');
+      
+      const member = response.member;
+      
+      // Log key details for debugging
+      logs.push('Step 5: Member ID: ' + (member?._id || 'not found'));
+      logs.push('Step 6: Login Email: ' + (member?.loginEmail || 'not found'));
+      
+      const firstName = member?.contact?.firstName || '';
+      const lastName = member?.contact?.lastName || '';
+      logs.push('Step 7: Name: ' + (firstName + ' ' + lastName).trim() || 'not found');
+      logs.push('Step 8: Status: ' + (member?.status || 'not found'));
+      logs.push('Step 9: Activity Status: ' + (member?.activityStatus || 'not found'));
+      
+      setResult('dashboardUser', {
+        success: true,
+        logs,
+        data: {
+          memberId: member?._id,
+          loginEmail: member?.loginEmail,
+          firstName: firstName,
+          lastName: lastName,
+          nickname: member?.profile?.nickname,
+          photo: member?.profile?.photo?.url,
+          status: member?.status,
+          activityStatus: member?.activityStatus,
+          contactId: member?.contactId,
+          createdDate: member?._createdDate,
+          // Include raw member object for full inspection
+          rawMember: member
+        }
+      });
+    } catch (error: any) {
+      logs.push('ERROR: ' + error.message);
+      
+      // Log additional error details if available
+      if (error.code) {
+        logs.push('ERROR CODE: ' + error.code);
+      }
+      if (error.details) {
+        logs.push('ERROR DETAILS: ' + JSON.stringify(error.details));
+      }
+      
+      setResult('dashboardUser', {
+        success: false,
+        logs,
+        error: { 
+          message: error.message, 
+          code: error.code, 
+          details: error.details 
+        }
+      });
+    } finally {
+      setLoading('dashboardUser', false);
     }
   };
 
@@ -351,6 +469,46 @@ export default function TestPage() {
           </Text>
         </Box>
         <ResultCard title="Token Info Result" result={results.token} />
+      </Box>
+      
+      <Divider />
+
+      {/* Current User Info (Backend - often fails in dashboard context) */}
+      <Box direction="vertical" gap="SP2">
+        <Box direction="horizontal" gap="SP2" verticalAlign="middle">
+          <Button
+            onClick={runGetCurrentUser}
+            disabled={loadingState.currentUser}
+            size="small"
+            priority="secondary"
+          >
+            {loadingState.currentUser ? <Loader size="tiny" /> : '1c. Get Current User (Backend)'}
+          </Button>
+          <Text size="tiny" secondary>
+            Backend auth.getTokenInfo() - may not work in dashboard context
+          </Text>
+        </Box>
+        <ResultCard title="Current User (Backend)" result={results.currentUser} />
+      </Box>
+      
+      <Divider />
+
+      {/* Dashboard User Info (SDK - recommended approach) */}
+      <Box direction="vertical" gap="SP2">
+        <Box direction="horizontal" gap="SP2" verticalAlign="middle">
+          <Button
+            onClick={runGetDashboardUser}
+            disabled={loadingState.dashboardUser}
+            size="small"
+            skin="premium"
+          >
+            {loadingState.dashboardUser ? <Loader size="tiny" /> : '1d. Get Dashboard User (SDK)'}
+          </Button>
+          <Text size="tiny" secondary>
+            Dashboard SDK auth - recommended for dashboard pages
+          </Text>
+        </Box>
+        <ResultCard title="Dashboard User (SDK)" result={results.dashboardUser} />
       </Box>
       
       <Divider />

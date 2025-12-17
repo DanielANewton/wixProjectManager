@@ -40,22 +40,26 @@ export const createEntry = webMethod(
  * @param cardId - The ID of the card
  * @param userId - The ID of the user making the change
  * @param content - Description of the change
+ * @param userName - Optional display name of the user
+ * @param userPhoto - Optional profile photo URL of the user
  * @param metadata - Additional metadata about the change
  * @returns The created history entry
  */
 export const addHistory = webMethod(
   Permissions.Anyone,
-  async (cardId, userId, content, metadata) => {
+  async (cardId, userId, content, userName, userPhoto, metadata) => {
     try {
       const result = await items.insert(COLLECTION_ID, {
         cardId,
         entryType: 'history',
         content,
         userId,
+        userName,
+        userPhoto,
         metadata,
       });
       
-      console.log('📝 History added for card:', cardId);
+      console.log('📝 History added for card:', cardId, 'by:', userName || userId);
       return result;
     } catch (error) {
       console.error('📝 Error adding history:', error);
@@ -69,19 +73,23 @@ export const addHistory = webMethod(
  * 
  * @param cardId - The ID of the card
  * @param userId - The ID of the user making the change
+ * @param userName - Optional display name of the user
+ * @param userPhoto - Optional profile photo URL of the user
  * @param fromStage - The previous stage name
  * @param toStage - The new stage name
  * @returns The created history entry
  */
 export const logStageChange = webMethod(
   Permissions.Anyone,
-  async (cardId, userId, fromStage, toStage) => {
+  async (cardId, userId, userName, userPhoto, fromStage, toStage) => {
     try {
       const result = await items.insert(COLLECTION_ID, {
         cardId,
         entryType: 'history',
         content: `Moved from "${fromStage}" to "${toStage}"`,
         userId,
+        userName,
+        userPhoto,
         metadata: {
           field: 'stage',
           oldValue: fromStage,
@@ -106,12 +114,13 @@ export const logStageChange = webMethod(
  * @param userId - The ID of the user
  * @param userName - The display name of the user
  * @param content - The comment text
+ * @param userPhoto - Optional profile photo URL of the user
  * @param metadata - Additional metadata
  * @returns The created comment entry
  */
 export const addComment = webMethod(
   Permissions.Anyone,
-  async (cardId, userId, userName, content, metadata) => {
+  async (cardId, userId, userName, content, userPhoto, metadata) => {
     try {
       const result = await items.insert(COLLECTION_ID, {
         cardId,
@@ -119,10 +128,11 @@ export const addComment = webMethod(
         content,
         userId,
         userName,
+        userPhoto,
         metadata,
       });
       
-      console.log('📝 Comment added for card:', cardId);
+      console.log('📝 Comment added for card:', cardId, 'by:', userName);
       return result;
     } catch (error) {
       console.error('📝 Error adding comment:', error);

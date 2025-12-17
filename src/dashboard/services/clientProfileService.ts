@@ -38,8 +38,9 @@ export async function createProfile(profile: NewClientProfile): Promise<ClientPr
       clientInfo: profile.clientInfo,
       extendedDetails: profile.extendedDetails,
     });
-    
-    return result?.data as ClientProfile || null;
+    // Backend returns item directly (not wrapped in { data: ... })
+    const profileResult = result?.data ?? result;
+    return profileResult as ClientProfile || null;
   } catch (error) {
     console.error('👤 Error creating profile:', error);
     throw error;
@@ -55,7 +56,9 @@ export async function createProfile(profile: NewClientProfile): Promise<ClientPr
 export async function getProfileById(profileId: string): Promise<ClientProfile | null> {
   try {
     const result = await backendGetProfileById(profileId);
-    return result?.data as ClientProfile || null;
+    // Backend returns item directly (not wrapped in { data: ... })
+    const profile = result?.data ?? result;
+    return profile as ClientProfile || null;
   } catch (error) {
     console.error('👤 Error fetching profile:', error);
     return null;
@@ -71,7 +74,9 @@ export async function getProfileById(profileId: string): Promise<ClientProfile |
 export async function getProfileByContactId(contactId: string): Promise<ClientProfile | null> {
   try {
     const result = await backendGetProfileByContactId(contactId);
-    return result?.data as ClientProfile || null;
+    // Backend returns item directly (not wrapped in { data: ... })
+    const profile = result?.data ?? result;
+    return profile as ClientProfile || null;
   } catch (error) {
     console.error('👤 Error fetching profile by contact:', error);
     return null;
@@ -86,7 +91,8 @@ export async function getProfileByContactId(contactId: string): Promise<ClientPr
 export async function getAllProfiles(): Promise<ClientProfile[]> {
   try {
     const results = await backendGetAllProfiles();
-    return (results || []).map(item => item.data as ClientProfile);
+    // Backend returns items directly (not wrapped in { data: ... })
+    return (results || []) as ClientProfile[];
   } catch (error) {
     console.error('👤 Error fetching all profiles:', error);
     return [];
@@ -106,7 +112,9 @@ export async function updateProfile(
 ): Promise<ClientProfile | null> {
   try {
     const result = await backendUpdateProfile(profileId, updates);
-    return result?.data as ClientProfile || null;
+    // Backend returns item directly (not wrapped in { data: ... })
+    const profile = result?.data ?? result;
+    return profile as ClientProfile || null;
   } catch (error) {
     console.error('👤 Error updating profile:', error);
     throw error;
@@ -126,7 +134,9 @@ export async function updateClientInfo(
 ): Promise<ClientProfile | null> {
   try {
     const result = await backendUpdateClientInfo(profileId, clientInfo);
-    return result?.data as ClientProfile || null;
+    // Backend returns item directly (not wrapped in { data: ... })
+    const profile = result?.data ?? result;
+    return profile as ClientProfile || null;
   } catch (error) {
     console.error('👤 Error updating client info:', error);
     throw error;
@@ -146,7 +156,9 @@ export async function updateExtendedDetails(
 ): Promise<ClientProfile | null> {
   try {
     const result = await backendUpdateProfile(profileId, { extendedDetails });
-    return result?.data as ClientProfile || null;
+    // Backend returns item directly (not wrapped in { data: ... })
+    const profile = result?.data ?? result;
+    return profile as ClientProfile || null;
   } catch (error) {
     console.error('👤 Error updating extended details:', error);
     throw error;
@@ -171,7 +183,11 @@ export async function upsertProfile(
       clientInfo,
       extendedDetails,
     });
-    return result?.data as ClientProfile || null;
+    // Backend returns profile directly (not wrapped in { data: ... })
+    // Handle both formats for compatibility
+    const profile = result?.data ?? result;
+    console.log('👤 Service upsertProfile result:', { hasData: !!result?.data, hasResult: !!result, profile });
+    return profile as ClientProfile || null;
   } catch (error) {
     console.error('👤 Error upserting profile:', error);
     throw error;

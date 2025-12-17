@@ -168,6 +168,9 @@ function ImportPage() {
           const cardResult = await upsertCardForProfile(profile._id, {
             stageId: 'engage',
             stage: '1. Engage',
+              readinessLevel: 1,
+              financeStatus: 'unknown',
+              callBackAppointmentDate: null,
           });
           console.log('🎴 Upsert card result for profile', profile._id, cardResult);
 

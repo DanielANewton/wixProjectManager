@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
-import { Loader, Box, Text } from '@wix/design-system';
+import { Loader, Box, Text, Button } from '@wix/design-system';
+import * as Icons from '@wix/wix-ui-icons-common';
 import KanbanColumn, { CardData } from './KanbanColumn.js';
 import { useKanbanCards } from '../hooks/useKanbanCards.js';
-import { ContactStatus, KanbanCard, ClientProfile } from '../types/kanbanCard.js';
+import { ContactStatus, KanbanCard, ClientProfile, NewKanbanCard } from '../types/kanbanCard.js';
 import ExpandedCardView from './ExpandedCardView/ExpandedCardView.js';
+import CreateCardModal from './CreateCardModal.js';
 
 /**
  * KanbanBoard - Main Kanban board component with drag-and-drop functionality
@@ -103,7 +105,8 @@ function getCardDescription(
 
 /**
  * Organizes KanbanCards into columns by their stageId
- * Enriches cards with profile data for display
+ * Enriches cards with profile data for display, including extended fields
+ * for the enhanced card display (readiness, tags, callback date, etc.)
  *
  * @param cards - Array of KanbanCards from the database
  * @param profilesMap - Map of profile IDs to profiles for lookup
@@ -123,6 +126,14 @@ function organizeCardsIntoColumns(
         title: getCardDisplayName(card, profilesMap),
         description: getCardDescription(card, profilesMap),
         priority: 'medium' as const, // Default priority, can be extended later
+        // Extended fields for enhanced card display
+        readinessLevel: card.readinessLevel,
+        interestTags: card.interestTags,
+        callBackDate: card.callBackAppointmentDate,
+        stageId: card.stageId,
+        financeStatus: card.financeStatus,
+        // Last updated by info for audit display
+        lastUpdatedBy: card.lastUpdatedBy,
       })),
   }));
 }
@@ -138,7 +149,12 @@ export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
     moveCard,
     isMoving,
     deleteCard,
+    createCard,
+    isCreating,
   } = useKanbanCards();
+
+  // State for Create Card modal
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Create a map of profiles for quick lookup by ID
   const profilesMap = useMemo(() => {
@@ -348,6 +364,34 @@ export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
     setExpandedStageId(stageId);
   };
 
+  /**
+   * Opens the Create Card modal
+   */
+  const handleOpenCreateModal = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  /**
+   * Closes the Create Card modal
+   */
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+  };
+
+  /**
+   * Creates a new card via the backend service
+   */
+  const handleCreateCard = async (cardData: NewKanbanCard) => {
+    try {
+      const newCard = await createCard(cardData);
+      console.log('📋 Card created successfully:', newCard?._id);
+      // Modal will close after successful creation
+    } catch (err) {
+      console.error('📋 Failed to create card:', err);
+      throw err; // Re-throw to let modal handle the error
+    }
+  };
+
   // Show loading state while fetching data
   if (isLoading) {
     return (
@@ -379,6 +423,26 @@ export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
 
   return (
     <>
+      {/* Action Bar with Create Card button */}
+      <Box
+        align="space-between"
+        verticalAlign="middle"
+        marginBottom="SP4"
+        padding="SP2"
+      >
+        <Text weight="bold">
+          {totalCards} {totalCards === 1 ? 'Card' : 'Cards'} in workflow
+        </Text>
+        <Button
+          size="small"
+          prefixIcon={<Icons.Add />}
+          onClick={handleOpenCreateModal}
+          disabled={profiles.length === 0}
+        >
+          Create Card
+        </Button>
+      </Box>
+
       {totalCards === 0 && (
         <Box
           align="center"
@@ -389,7 +453,7 @@ export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
         >
           <Text secondary>
             No cards yet. Use the Import Contacts page to import CRM contacts
-            into the Kanban workflow.
+            into the Kanban workflow, or click "Create Card" to add a card manually.
           </Text>
         </Box>
       )}
@@ -432,6 +496,15 @@ export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
           onStageChange={handleExpandedStageChange}
         />
       )}
+
+      {/* Create Card Modal */}
+      <CreateCardModal
+        isOpen={isCreateModalOpen}
+        onClose={handleCloseCreateModal}
+        onCreateCard={handleCreateCard}
+        profiles={profiles}
+        isCreating={isCreating}
+      />
     </>
   );
 }

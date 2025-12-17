@@ -13,13 +13,31 @@ import KanbanCard from './KanbanCard.js';
  * @param onAddCard - Optional callback when the add button is clicked
  * @param onEditCard - Optional callback passed to cards for editing
  * @param onDeleteCard - Optional callback passed to cards for deletion
+ * @param onCardClick - Callback when a card is clicked to open expanded view
  */
 
+/**
+ * CardData - Data structure for cards displayed in the Kanban board
+ * Extended to include additional fields for enhanced card display
+ */
 export interface CardData {
   id: string;
   title: string;
   description?: string;
   priority?: 'low' | 'medium' | 'high';
+  // Extended fields for enhanced card display
+  readinessLevel?: number;          // Client readiness score (1-5 scale)
+  interestTags?: string[];          // Array of interest tags for tag cloud
+  callBackDate?: string;            // Callback/re-engage appointment date
+  stageId?: string;                 // Current workflow stage identifier
+  financeStatus?: string;           // Finance application status
+  // Last updated by info for audit display
+  lastUpdatedBy?: {
+    userId: string;
+    userName: string;
+    userPhoto?: string;
+    updatedAt: string;
+  };
 }
 
 export interface KanbanColumnProps {
@@ -86,8 +104,8 @@ export default function KanbanColumn({
   return (
     <div
       style={{
-        width: '220px',
-        minWidth: '220px',
+        width: '320px',
+        minWidth: '320px',
         minHeight: '500px',
         padding: '12px',
         backgroundColor,
@@ -127,7 +145,7 @@ export default function KanbanColumn({
               transition: 'background-color 0.2s ease',
             }}
           >
-            {/* Render all cards in this column */}
+            {/* Render all cards in this column with extended data */}
             {cards.map((card, index) => (
               <KanbanCard
                 key={card.id}
@@ -136,6 +154,12 @@ export default function KanbanColumn({
                 title={card.title}
                 description={card.description}
                 priority={card.priority}
+                readinessLevel={card.readinessLevel}
+                interestTags={card.interestTags}
+                callBackDate={card.callBackDate}
+                stageId={card.stageId}
+                financeStatus={card.financeStatus}
+                lastUpdatedBy={card.lastUpdatedBy}
                 onEdit={onEditCard}
                 onDelete={onDeleteCard}
                 onClick={onCardClick}

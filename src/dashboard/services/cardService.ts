@@ -35,7 +35,9 @@ import {
 export async function createCard(card: NewKanbanCard): Promise<KanbanCard | null> {
   try {
     const result = await backendCreateCard(card);
-    return result?.data as KanbanCard || null;
+    // Backend returns item directly (not wrapped in { data: ... })
+    const cardResult = result?.data ?? result;
+    return cardResult as KanbanCard || null;
   } catch (error) {
     console.error('🎴 Error creating card:', error);
     throw error;
@@ -51,7 +53,9 @@ export async function createCard(card: NewKanbanCard): Promise<KanbanCard | null
 export async function getCardById(cardId: string): Promise<KanbanCard | null> {
   try {
     const result = await backendGetCardById(cardId);
-    return result?.data as KanbanCard || null;
+    // Backend returns item directly (not wrapped in { data: ... })
+    const card = result?.data ?? result;
+    return card as KanbanCard || null;
   } catch (error) {
     console.error('🎴 Error fetching card:', error);
     return null;
@@ -67,7 +71,8 @@ export async function getCardById(cardId: string): Promise<KanbanCard | null> {
 export async function getCardsByProfileId(profileId: string): Promise<KanbanCard[]> {
   try {
     const results = await backendGetCardsByProfileId(profileId);
-    return (results || []).map(item => item.data as KanbanCard);
+    // Backend returns items directly (not wrapped in { data: ... })
+    return (results || []) as KanbanCard[];
   } catch (error) {
     console.error('🎴 Error fetching cards by profile:', error);
     return [];
@@ -83,7 +88,8 @@ export async function getCardsByProfileId(profileId: string): Promise<KanbanCard
 export async function getCardsByStage(stageId: ContactStatus): Promise<KanbanCard[]> {
   try {
     const results = await backendGetCardsByStage(stageId);
-    return (results || []).map(item => item.data as KanbanCard);
+    // Backend returns items directly (not wrapped in { data: ... })
+    return (results || []) as KanbanCard[];
   } catch (error) {
     console.error('🎴 Error fetching cards by stage:', error);
     return [];
@@ -99,7 +105,8 @@ export async function getAllCards(): Promise<KanbanCard[]> {
   try {
     const results = await backendGetAllCards();
     console.log('🎴 Fetched all cards:', results?.length || 0);
-    return (results || []).map(item => item.data as KanbanCard);
+    // Backend returns items directly (not wrapped in { data: ... })
+    return (results || []) as KanbanCard[];
   } catch (error) {
     console.error('🎴 Error fetching all cards:', error);
     return [];
@@ -119,7 +126,9 @@ export async function updateCard(
 ): Promise<KanbanCard | null> {
   try {
     const result = await backendUpdateCard(cardId, updates);
-    return result?.data as KanbanCard || null;
+    // Backend returns item directly (not wrapped in { data: ... })
+    const card = result?.data ?? result;
+    return card as KanbanCard || null;
   } catch (error) {
     console.error('🎴 Error updating card:', error);
     throw error;
@@ -141,7 +150,9 @@ export async function updateCardStage(
 ): Promise<KanbanCard | null> {
   try {
     const result = await backendUpdateCardStage(cardId, newStageId, newStageName);
-    return result?.data as KanbanCard || null;
+    // Backend returns item directly (not wrapped in { data: ... })
+    const card = result?.data ?? result;
+    return card as KanbanCard || null;
   } catch (error) {
     console.error('🎴 Error updating card stage:', error);
     throw error;
@@ -183,7 +194,11 @@ export async function upsertCardForProfile(
       stage: cardData.stage || '1. Engage',
       ...cardData,
     });
-    return result?.data as KanbanCard || null;
+    // Backend returns card directly (not wrapped in { data: ... })
+    // Handle both formats for compatibility
+    const card = result?.data ?? result;
+    console.log('🎴 Service upsertCardForProfile result:', { profileId, hasData: !!result?.data, hasResult: !!result, cardId: card?._id });
+    return card as KanbanCard || null;
   } catch (error) {
     console.error('🎴 Error upserting card:', error);
     throw error;

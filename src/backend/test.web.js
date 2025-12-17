@@ -7,6 +7,7 @@
 import { webMethod, Permissions } from '@wix/web-methods';
 import { items } from '@wix/data';
 import { auth } from '@wix/essentials';
+import { members } from '@wix/members';
 
 const COLLECTION_ID = '@daniel02231/project-manager-v0/KanbanCards';
 
@@ -186,6 +187,133 @@ export const debugTokenInfo = webMethod(
       logs,
       data: null,
     };
+  }
+);
+
+/**
+ * Get currently logged-in user information
+ * 
+ * Returns the current member's details including:
+ * - Member ID (useful for record keeping)
+ * - Name (first, last, nickname)
+ * - Email
+ * - Profile photo
+ * - Login email
+ * - Status
+ * 
+ * This data can be used for audit logs and record keeping.
+ */
+export const getCurrentUser = webMethod(
+  Permissions.Anyone,
+  async () => {
+    const logs = [];
+    try {
+      logs.push('Step 1: Getting token info...');
+      
+      // Get token info to see who is calling
+      const tokenInfo = await auth.getTokenInfo();
+      logs.push('Step 2: Token subject type: ' + tokenInfo.subjectType);
+      logs.push('Step 3: Token subject ID: ' + tokenInfo.subjectId);
+
+      const isMember = tokenInfo.subjectType === 'member';
+
+      // If not a member, return basic info only
+      if (!isMember) {
+        logs.push('Step 4: Not a member - returning token info only');
+        return {
+          success: true,
+          logs,
+          data: {
+            isLoggedIn: false,
+            userId: tokenInfo.subjectId || 'anonymous',
+            userName: 'Anonymous User',
+            subjectType: tokenInfo.subjectType,
+            siteId: tokenInfo.siteId,
+          },
+        };
+      }
+
+      // For members, try to get full profile from members API
+      logs.push('Step 4: Fetching member profile...');
+      try {
+        const memberResponse = await members.getCurrentMember({
+          fieldsets: ['FULL'],
+        });
+        
+        const member = memberResponse.member;
+        logs.push('Step 5: Member data retrieved');
+        
+        // Extract name from profile or contact
+        const firstName = member?.profile?.firstName || member?.contact?.firstName || '';
+        const lastName = member?.profile?.lastName || member?.contact?.lastName || '';
+        const nickname = member?.profile?.nickname || '';
+        
+        // Build display name: prefer full name, then nickname, then email
+        let userName = `${firstName} ${lastName}`.trim();
+        if (!userName && nickname) {
+          userName = nickname;
+        }
+        if (!userName && member?.loginEmail) {
+          userName = member.loginEmail;
+        }
+        if (!userName) {
+          userName = 'Site Member';
+        }
+        
+        logs.push('Step 6: User name: ' + userName);
+        
+        const userData = {
+          isLoggedIn: true,
+          userId: member?._id || tokenInfo.subjectId,
+          userName: userName,
+          email: member?.loginEmail,
+          firstName: firstName,
+          lastName: lastName,
+          nickname: nickname,
+          photo: member?.profile?.photo?.url,
+          contactId: member?.contactId,
+          status: member?.status,
+          createdDate: member?._createdDate,
+        };
+        
+        logs.push('Step 7: Full profile compiled successfully');
+        
+        return {
+          success: true,
+          logs,
+          data: userData,
+        };
+      } catch (memberError) {
+        // If members API fails, fall back to token info
+        logs.push('Step 5: Members API error: ' + memberError.message);
+        logs.push('Step 6: Falling back to token info');
+        
+        return {
+          success: true,
+          logs,
+          data: {
+            isLoggedIn: true,
+            userId: tokenInfo.subjectId,
+            userName: 'Site Member',
+            subjectType: tokenInfo.subjectType,
+            siteId: tokenInfo.siteId,
+            note: 'Could not fetch full profile: ' + memberError.message,
+          },
+        };
+      }
+    } catch (error) {
+      logs.push('ERROR: ' + error.message);
+      return {
+        success: false,
+        logs,
+        data: {
+          isLoggedIn: false,
+          userId: 'unknown',
+          userName: 'Unknown User',
+        },
+        error: { message: error.message, code: error.code },
+      };
+    }
   }
 );
 

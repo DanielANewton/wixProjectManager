@@ -83,7 +83,10 @@ export default function CommentsTab({ comments, onAddComment }: CommentsTabProps
 }
 
 /**
- * CommentItem - Individual comment display
+ * CommentItem - Individual comment display with user photo
+ * 
+ * Shows the commenter's profile photo (if available) or initials,
+ * their nickname/name, timestamp, and comment content.
  */
 interface CommentItemProps {
   comment: ActivityLogEntry;
@@ -95,9 +98,12 @@ function CommentItem({ comment }: CommentItemProps) {
     ? new Date(comment._createdDate).toLocaleString()
     : '';
   
-  // Get initials for avatar
+  // Get display name - prefer nickname style name
   const userName = comment.userName || comment.userId || 'User';
   const initials = userName.charAt(0).toUpperCase();
+  
+  // Get user photo URL (stored when comment was created)
+  const userPhoto = comment.userPhoto;
 
   return (
     <Box
@@ -106,11 +112,26 @@ function CommentItem({ comment }: CommentItemProps) {
       borderRadius="8px"
       gap={3}
     >
-      <Avatar
-        size="size30"
-        name={userName}
-        text={initials}
-      />
+      {/* User Avatar - show photo if available, otherwise initials */}
+      {userPhoto ? (
+        <img
+          src={userPhoto}
+          alt={userName}
+          style={{
+            width: '30px',
+            height: '30px',
+            borderRadius: '50%',
+            objectFit: 'cover',
+            flexShrink: 0,
+          }}
+        />
+      ) : (
+        <Avatar
+          size="size30"
+          name={userName}
+          text={initials}
+        />
+      )}
       
       <Box direction="vertical" gap={1} flex={1}>
         <Box align="space-between" verticalAlign="middle">

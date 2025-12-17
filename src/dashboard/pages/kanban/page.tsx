@@ -27,8 +27,8 @@ function KanbanPage() {
   return (
     <Page height="100vh">
       <Page.Header
-        title="YorProject Workflow"
-        subtitle="Master Kanban board for customer journey management"
+        title="Project Cards"
+        subtitle="Kanban board for customer journey management"
       />
       <Page.Content>
         <Box direction="vertical" gap={4}>

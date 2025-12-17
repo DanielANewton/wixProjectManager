@@ -21,12 +21,15 @@ export interface ClientHeaderProps {
   profile: ClientProfile | null;
   card: KanbanCard | null;
   onUpdateProfile?: (updates: Partial<ClientInfo>) => void;
+  // Handler to update card fields (e.g., readiness level)
+  onUpdateCard?: (updates: Partial<KanbanCard>) => void;
 }
 
 export default function ClientHeader({
   profile,
   card,
   onUpdateProfile,
+  onUpdateCard,
 }: ClientHeaderProps) {
   const clientInfo = profile?.clientInfo;
   
@@ -136,45 +139,52 @@ export default function ClientHeader({
       </Box>
 
       {/* Readiness and Finance Status */}
-      {(card?.readinessLevel || card?.financeStatus) && (
-        <Box marginTop={3} gap={4}>
-          {card.readinessLevel !== undefined && (
-            <Box direction="vertical" gap={1}>
-              <Text size="tiny" secondary>Readiness Level</Text>
-              <Box gap={1}>
-                {[1, 2, 3, 4, 5].map(level => (
-                  <div
-                    key={level}
-                    style={{
-                      width: '20px',
-                      height: '8px',
-                      borderRadius: '4px',
-                      backgroundColor: level <= (card.readinessLevel || 0)
-                        ? '#4CAF50'
-                        : '#E0E0E0',
-                    }}
-                  />
-                ))}
-              </Box>
-            </Box>
-          )}
-          {card.financeStatus && (
-            <Box direction="vertical" gap={1}>
-              <Text size="tiny" secondary>Finance Status</Text>
-              <Badge
-                size="tiny"
-                skin={
-                  card.financeStatus === 'approved' ? 'success' :
-                  card.financeStatus === 'pending' ? 'warning' :
-                  card.financeStatus === 'rejected' ? 'danger' : 'general'
-                }
-              >
-                {card.financeStatus}
-              </Badge>
-            </Box>
-          )}
+      <Box marginTop={3} gap={4} wrap="wrap">
+        <Box direction="vertical" gap={1}>
+          <Text size="tiny" secondary>Readiness Level</Text>
+          <Box gap={1}>
+            {[1, 2, 3, 4, 5].map(level => {
+              const isFilled = level <= (card?.readinessLevel || 0);
+              return (
+                <div
+                  key={level}
+                  onClick={() => onUpdateCard?.({ readinessLevel: level })}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      onUpdateCard?.({ readinessLevel: level });
+                    }
+                  }}
+                  style={{
+                    width: '20px',
+                    height: '8px',
+                    borderRadius: '4px',
+                    backgroundColor: isFilled ? '#4CAF50' : '#E0E0E0',
+                    cursor: onUpdateCard ? 'pointer' : 'default',
+                    outline: 'none',
+                  }}
+                />
+              );
+            })}
+          </Box>
         </Box>
-      )}
+        {card?.financeStatus && (
+          <Box direction="vertical" gap={1}>
+            <Text size="tiny" secondary>Finance Status</Text>
+            <Badge
+              size="tiny"
+              skin={
+                card.financeStatus === 'approved' ? 'success' :
+                card.financeStatus === 'pending' ? 'warning' :
+                card.financeStatus === 'rejected' ? 'danger' : 'general'
+              }
+            >
+              {card.financeStatus}
+            </Badge>
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 }

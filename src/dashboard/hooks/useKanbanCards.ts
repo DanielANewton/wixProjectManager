@@ -25,6 +25,7 @@ import {
 import * as cardService from '../services/cardService.js';
 import * as activityLogService from '../services/activityLogService.js';
 import * as profileService from '../services/clientProfileService.js';
+import { useCurrentUser } from './useCurrentUser.js';
 
 // Query keys for React Query cache management
 export const QUERY_KEYS = {
@@ -48,6 +49,10 @@ export interface EnrichedCard extends KanbanCard {
  */
 export function useKanbanCards() {
   const queryClient = useQueryClient();
+  
+  // Get current user info for recording who makes changes
+  // Includes userPhoto for displaying who made changes
+  const { userId: currentUserId, userName: currentUserName, userPhoto: currentUserPhoto } = useCurrentUser();
 
   // Fetch all cards from the database
   const cardsQuery = useQuery({
@@ -92,26 +97,39 @@ export function useKanbanCards() {
   });
 
   // Mutation for updating a card
+  // Uses current user ID for activity log recording
+  // Also sets lastUpdatedBy on the card for audit display
   const updateCardMutation = useMutation({
     mutationFn: async ({ 
       cardId, 
       updates, 
-      userId = 'system' 
     }: { 
       cardId: string; 
       updates: Partial<KanbanCard>; 
-      userId?: string;
     }) => {
-      const result = await cardService.updateCard(cardId, updates);
+      // Add lastUpdatedBy to track who made this change
+      const updatesWithUser = {
+        ...updates,
+        lastUpdatedBy: {
+          userId: currentUserId,
+          userName: currentUserName,
+          userPhoto: currentUserPhoto,
+          updatedAt: new Date().toISOString(),
+        },
+      };
       
-      // Log the update to activity log
+      const result = await cardService.updateCard(cardId, updatesWithUser);
+      
+      // Log the update to activity log with user info
       if (result) {
-        const changedFields = Object.keys(updates);
+        const changedFields = Object.keys(updates).filter(f => f !== 'lastUpdatedBy');
         for (const field of changedFields) {
           await activityLogService.addHistory(
             cardId,
-            userId,
+            currentUserId,
             `Updated ${field}`,
+            currentUserName,
+            currentUserPhoto,
             { field, action: 'field_update' }
           );
         }
@@ -125,25 +143,42 @@ export function useKanbanCards() {
   });
 
   // Mutation for moving a card to a new stage
+  // Uses current user ID for activity log recording
+  // Also sets lastUpdatedBy on the card for audit display
   const moveCardMutation = useMutation({
     mutationFn: async ({
       cardId,
       fromStage,
       toStageId,
       toStageName,
-      userId = 'system',
     }: {
       cardId: string;
       fromStage: string;
       toStageId: ContactStatus;
       toStageName: string;
-      userId?: string;
     }) => {
-      const result = await cardService.updateCardStage(cardId, toStageId, toStageName);
+      // Update card stage and set lastUpdatedBy
+      const result = await cardService.updateCard(cardId, {
+        stageId: toStageId,
+        stage: toStageName,
+        lastUpdatedBy: {
+          userId: currentUserId,
+          userName: currentUserName,
+          userPhoto: currentUserPhoto,
+          updatedAt: new Date().toISOString(),
+        },
+      });
       
-      // Log the stage change to activity log
+      // Log the stage change to activity log with user info
       if (result) {
-        await activityLogService.logStageChange(cardId, userId, fromStage, toStageName);
+        await activityLogService.logStageChange(
+          cardId,
+          currentUserId,
+          currentUserName,
+          currentUserPhoto,
+          fromStage,
+          toStageName
+        );
       }
       
       return result;

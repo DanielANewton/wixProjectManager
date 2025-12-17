@@ -144,6 +144,14 @@ export interface KanbanCard {
   // Reference to ClientProfile (NEW: replaces contactId)
   profileId: string;
   
+  // Last updated by - tracks who made the most recent change
+  lastUpdatedBy?: {
+    userId: string;
+    userName: string;
+    userPhoto?: string;
+    updatedAt: string;
+  };
+  
   // Stage/workflow fields
   stageId: ContactStatus;
   stage: string;
@@ -231,6 +239,7 @@ export interface ActivityLogEntry {
   // Who performed this action
   userId: string;
   userName?: string;
+  userPhoto?: string; // Profile photo URL for avatar display
   
   // Additional data based on entryType
   metadata?: HistoryMetadata | CommentMetadata;

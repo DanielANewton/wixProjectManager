@@ -36,7 +36,9 @@ import {
 export async function createEntry(entry: NewActivityLogEntry): Promise<ActivityLogEntry | null> {
   try {
     const result = await backendCreateEntry(entry);
-    return result?.data as ActivityLogEntry || null;
+    // Backend returns item directly (not wrapped in { data: ... })
+    const entryResult = result?.data ?? result;
+    return entryResult as ActivityLogEntry || null;
   } catch (error) {
     console.error('📝 Error creating entry:', error);
     throw error;
@@ -49,6 +51,8 @@ export async function createEntry(entry: NewActivityLogEntry): Promise<ActivityL
  * @param cardId - The card that was modified
  * @param userId - Who made the change
  * @param content - Description of the change
+ * @param userName - Optional display name of the user
+ * @param userPhoto - Optional profile photo URL of the user
  * @param metadata - Additional details about what changed
  * @returns The created history entry
  */
@@ -56,11 +60,15 @@ export async function addHistory(
   cardId: string,
   userId: string,
   content: string,
+  userName?: string,
+  userPhoto?: string,
   metadata?: HistoryMetadata
 ): Promise<ActivityLogEntry | null> {
   try {
-    const result = await backendAddHistory(cardId, userId, content, metadata);
-    return result?.data as ActivityLogEntry || null;
+    const result = await backendAddHistory(cardId, userId, content, userName, userPhoto, metadata);
+    // Backend returns item directly (not wrapped in { data: ... })
+    const entry = result?.data ?? result;
+    return entry as ActivityLogEntry || null;
   } catch (error) {
     console.error('📝 Error adding history:', error);
     throw error;
@@ -79,12 +87,16 @@ export async function addHistory(
 export async function logStageChange(
   cardId: string,
   userId: string,
+  userName: string,
+  userPhoto: string | undefined,
   fromStage: string,
   toStage: string
 ): Promise<ActivityLogEntry | null> {
   try {
-    const result = await backendLogStageChange(cardId, userId, fromStage, toStage);
-    return result?.data as ActivityLogEntry || null;
+    const result = await backendLogStageChange(cardId, userId, userName, userPhoto, fromStage, toStage);
+    // Backend returns item directly (not wrapped in { data: ... })
+    const entry = result?.data ?? result;
+    return entry as ActivityLogEntry || null;
   } catch (error) {
     console.error('📝 Error logging stage change:', error);
     throw error;
@@ -128,6 +140,7 @@ export async function logFieldUpdate(
  * @param userId - Who wrote the comment
  * @param userName - Display name of the commenter
  * @param content - The comment text
+ * @param userPhoto - Optional profile photo URL of the commenter
  * @param metadata - Optional metadata (parent ID for replies, board info)
  * @returns The created comment
  */
@@ -136,11 +149,14 @@ export async function addComment(
   userId: string,
   userName: string,
   content: string,
+  userPhoto?: string,
   metadata?: CommentMetadata
 ): Promise<ActivityLogEntry | null> {
   try {
-    const result = await backendAddComment(cardId, userId, userName, content, metadata);
-    return result?.data as ActivityLogEntry || null;
+    const result = await backendAddComment(cardId, userId, userName, content, userPhoto, metadata);
+    // Backend returns item directly (not wrapped in { data: ... })
+    const entry = result?.data ?? result;
+    return entry as ActivityLogEntry || null;
   } catch (error) {
     console.error('📝 Error adding comment:', error);
     throw error;
@@ -157,7 +173,8 @@ export async function addComment(
 export async function getCardEntries(cardId: string): Promise<ActivityLogEntry[]> {
   try {
     const results = await backendGetEntriesByCardId(cardId);
-    return (results || []).map(item => item.data as ActivityLogEntry);
+    // Backend returns items directly (not wrapped in { data: ... })
+    return (results || []) as ActivityLogEntry[];
   } catch (error) {
     console.error('📝 Error fetching card entries:', error);
     return [];
@@ -173,7 +190,8 @@ export async function getCardEntries(cardId: string): Promise<ActivityLogEntry[]
 export async function getCardHistory(cardId: string): Promise<ActivityLogEntry[]> {
   try {
     const results = await backendGetHistoryByCardId(cardId);
-    return (results || []).map(item => item.data as ActivityLogEntry);
+    // Backend returns items directly (not wrapped in { data: ... })
+    return (results || []) as ActivityLogEntry[];
   } catch (error) {
     console.error('📝 Error fetching card history:', error);
     return [];
@@ -189,7 +207,8 @@ export async function getCardHistory(cardId: string): Promise<ActivityLogEntry[]
 export async function getCardComments(cardId: string): Promise<ActivityLogEntry[]> {
   try {
     const results = await backendGetCommentsByCardId(cardId);
-    return (results || []).map(item => item.data as ActivityLogEntry);
+    // Backend returns items directly (not wrapped in { data: ... })
+    return (results || []) as ActivityLogEntry[];
   } catch (error) {
     console.error('📝 Error fetching card comments:', error);
     return [];
