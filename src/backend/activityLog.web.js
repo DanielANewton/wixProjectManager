@@ -14,48 +14,14 @@ import { items } from '@wix/data';
 const COLLECTION_ID = '@daniel02231/project-manager-v0/ActivityLog';
 
 /**
- * Entry type - distinguishes between history and comments
- */
-type EntryType = 'history' | 'comment';
-
-/**
- * Metadata for history entries
- */
-interface HistoryMetadata {
-  field?: string;
-  oldValue?: string;
-  newValue?: string;
-  action?: string;
-}
-
-/**
- * Metadata for comment entries
- */
-interface CommentMetadata {
-  parentId?: string;
-  boardId?: string;
-  boardName?: string;
-  isFromExternalBoard?: boolean;
-}
-
-/**
- * Input type for creating a new activity log entry
- */
-interface CreateEntryInput {
-  cardId: string;
-  entryType: EntryType;
-  content: string;
-  userId: string;
-  userName?: string;
-  metadata?: HistoryMetadata | CommentMetadata;
-}
-
-/**
  * Creates a new activity log entry
+ * 
+ * @param entryData - The entry data to create
+ * @returns The created entry with _id and timestamps
  */
 export const createEntry = webMethod(
   Permissions.Anyone,
-  async (entryData: CreateEntryInput) => {
+  async (entryData) => {
     try {
       const result = await items.insert(COLLECTION_ID, entryData);
       
@@ -70,15 +36,16 @@ export const createEntry = webMethod(
 
 /**
  * Adds a history entry for a card
+ * 
+ * @param cardId - The ID of the card
+ * @param userId - The ID of the user making the change
+ * @param content - Description of the change
+ * @param metadata - Additional metadata about the change
+ * @returns The created history entry
  */
 export const addHistory = webMethod(
   Permissions.Anyone,
-  async (
-    cardId: string,
-    userId: string,
-    content: string,
-    metadata?: HistoryMetadata
-  ) => {
+  async (cardId, userId, content, metadata) => {
     try {
       const result = await items.insert(COLLECTION_ID, {
         cardId,
@@ -99,15 +66,16 @@ export const addHistory = webMethod(
 
 /**
  * Logs a stage change in the activity log
+ * 
+ * @param cardId - The ID of the card
+ * @param userId - The ID of the user making the change
+ * @param fromStage - The previous stage name
+ * @param toStage - The new stage name
+ * @returns The created history entry
  */
 export const logStageChange = webMethod(
   Permissions.Anyone,
-  async (
-    cardId: string,
-    userId: string,
-    fromStage: string,
-    toStage: string
-  ) => {
+  async (cardId, userId, fromStage, toStage) => {
     try {
       const result = await items.insert(COLLECTION_ID, {
         cardId,
@@ -133,16 +101,17 @@ export const logStageChange = webMethod(
 
 /**
  * Adds a comment to a card
+ * 
+ * @param cardId - The ID of the card
+ * @param userId - The ID of the user
+ * @param userName - The display name of the user
+ * @param content - The comment text
+ * @param metadata - Additional metadata
+ * @returns The created comment entry
  */
 export const addComment = webMethod(
   Permissions.Anyone,
-  async (
-    cardId: string,
-    userId: string,
-    userName: string,
-    content: string,
-    metadata?: CommentMetadata
-  ) => {
+  async (cardId, userId, userName, content, metadata) => {
     try {
       const result = await items.insert(COLLECTION_ID, {
         cardId,
@@ -164,10 +133,13 @@ export const addComment = webMethod(
 
 /**
  * Fetches all activity entries for a card
+ * 
+ * @param cardId - The ID of the card
+ * @returns Array of all entries (history and comments)
  */
 export const getEntriesByCardId = webMethod(
   Permissions.Anyone,
-  async (cardId: string) => {
+  async (cardId) => {
     try {
       const result = await items.query(COLLECTION_ID)
         .eq('cardId', cardId)
@@ -184,10 +156,13 @@ export const getEntriesByCardId = webMethod(
 
 /**
  * Fetches only history entries for a card
+ * 
+ * @param cardId - The ID of the card
+ * @returns Array of history entries
  */
 export const getHistoryByCardId = webMethod(
   Permissions.Anyone,
-  async (cardId: string) => {
+  async (cardId) => {
     try {
       const result = await items.query(COLLECTION_ID)
         .eq('cardId', cardId)
@@ -205,10 +180,13 @@ export const getHistoryByCardId = webMethod(
 
 /**
  * Fetches only comments for a card
+ * 
+ * @param cardId - The ID of the card
+ * @returns Array of comment entries
  */
 export const getCommentsByCardId = webMethod(
   Permissions.Anyone,
-  async (cardId: string) => {
+  async (cardId) => {
     try {
       const result = await items.query(COLLECTION_ID)
         .eq('cardId', cardId)
@@ -226,10 +204,13 @@ export const getCommentsByCardId = webMethod(
 
 /**
  * Deletes all entries for a card (used when deleting a card)
+ * 
+ * @param cardId - The ID of the card
+ * @returns Number of entries deleted
  */
 export const deleteEntriesByCardId = webMethod(
   Permissions.Anyone,
-  async (cardId: string) => {
+  async (cardId) => {
     try {
       const entries = await items.query(COLLECTION_ID)
         .eq('cardId', cardId)
@@ -254,10 +235,13 @@ export const deleteEntriesByCardId = webMethod(
 
 /**
  * Deletes a single entry by ID
+ * 
+ * @param entryId - The ID of the entry to delete
+ * @returns True if deletion was successful
  */
 export const deleteEntry = webMethod(
   Permissions.Anyone,
-  async (entryId: string) => {
+  async (entryId) => {
     try {
       await items.remove(COLLECTION_ID, entryId);
       
@@ -269,3 +253,4 @@ export const deleteEntry = webMethod(
     }
   }
 );
+

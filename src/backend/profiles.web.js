@@ -14,40 +14,14 @@ import { items } from '@wix/data';
 const COLLECTION_ID = '@daniel02231/project-manager-v0/ClientProfiles';
 
 /**
- * Input type for creating a new profile
- */
-interface CreateProfileInput {
-  contactId: string;
-  clientInfo: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    phone?: string;
-    address?: {
-      street?: string;
-      city?: string;
-      postcode?: string;
-      country?: string;
-    };
-    company?: string;
-    jobTitle?: string;
-  };
-  extendedDetails?: {
-    propertyType?: string;
-    propertyAge?: string;
-    currentEnergyCost?: number;
-    preferredContactMethod?: string;
-    notes?: string;
-    customFields?: Record<string, string | number | boolean>;
-  };
-}
-
-/**
  * Creates a new ClientProfile linked to a CRM contact
+ * 
+ * @param profileData - The profile data to create
+ * @returns The created profile with _id and timestamps
  */
 export const createProfile = webMethod(
   Permissions.Anyone,
-  async (profileData: CreateProfileInput) => {
+  async (profileData) => {
     try {
       const result = await items.insert(COLLECTION_ID, {
         ...profileData,
@@ -65,10 +39,13 @@ export const createProfile = webMethod(
 
 /**
  * Fetches a profile by its ID
+ * 
+ * @param profileId - The unique profile ID
+ * @returns The profile data or null if not found
  */
 export const getProfileById = webMethod(
   Permissions.Anyone,
-  async (profileId: string) => {
+  async (profileId) => {
     try {
       const result = await items.get(COLLECTION_ID, profileId);
       return result;
@@ -81,10 +58,13 @@ export const getProfileById = webMethod(
 
 /**
  * Fetches a profile by CRM contact ID
+ * 
+ * @param contactId - The CRM contact ID
+ * @returns The profile data or null if not found
  */
 export const getProfileByContactId = webMethod(
   Permissions.Anyone,
-  async (contactId: string) => {
+  async (contactId) => {
     try {
       const result = await items.query(COLLECTION_ID)
         .eq('contactId', contactId)
@@ -101,6 +81,8 @@ export const getProfileByContactId = webMethod(
 
 /**
  * Fetches all profiles
+ * 
+ * @returns Array of all profiles
  */
 export const getAllProfiles = webMethod(
   Permissions.Anyone,
@@ -111,7 +93,7 @@ export const getAllProfiles = webMethod(
       
       console.log('👤 Fetched all profiles:', result.items?.length || 0);
       return result.items || [];
-    } catch (error: any) {
+    } catch (error) {
       console.error('👤 Error fetching all profiles:', JSON.stringify({
         message: error?.message,
         code: error?.code,
@@ -125,10 +107,14 @@ export const getAllProfiles = webMethod(
 
 /**
  * Updates a profile by ID
+ * 
+ * @param profileId - The ID of the profile to update
+ * @param updates - Partial profile data to merge
+ * @returns The updated profile
  */
 export const updateProfile = webMethod(
   Permissions.Anyone,
-  async (profileId: string, updates: Partial<CreateProfileInput>) => {
+  async (profileId, updates) => {
     try {
       // First fetch existing profile
       const existing = await items.get(COLLECTION_ID, profileId);
@@ -158,10 +144,14 @@ export const updateProfile = webMethod(
 
 /**
  * Updates just the clientInfo portion of a profile
+ * 
+ * @param profileId - The profile ID
+ * @param clientInfo - Updated client info
+ * @returns The updated profile
  */
 export const updateClientInfo = webMethod(
   Permissions.Anyone,
-  async (profileId: string, clientInfo: Partial<CreateProfileInput['clientInfo']>) => {
+  async (profileId, clientInfo) => {
     try {
       const existing = await items.get(COLLECTION_ID, profileId);
       
@@ -188,10 +178,13 @@ export const updateClientInfo = webMethod(
 
 /**
  * Deletes a profile by ID
+ * 
+ * @param profileId - The profile ID to delete
+ * @returns True if deletion was successful
  */
 export const deleteProfile = webMethod(
   Permissions.Anyone,
-  async (profileId: string) => {
+  async (profileId) => {
     try {
       await items.remove(COLLECTION_ID, profileId);
       
@@ -206,11 +199,17 @@ export const deleteProfile = webMethod(
 
 /**
  * Creates or updates a profile for a contact (upsert)
+ * 
+ * @param contactId - The CRM contact ID
+ * @param profileData - The profile data (without contactId)
+ * @returns The created or updated profile
  */
 export const upsertProfile = webMethod(
   Permissions.Anyone,
-  async (contactId: string, profileData: Omit<CreateProfileInput, 'contactId'>) => {
+  async (contactId, profileData) => {
     try {
+      console.log('👤 Upsert profile start', { contactId, hasClientInfo: !!profileData?.clientInfo });
+
       // Check if profile exists for this contact
       const existingResult = await items.query(COLLECTION_ID)
         .eq('contactId', contactId)
@@ -220,6 +219,7 @@ export const upsertProfile = webMethod(
       const existing = existingResult.items?.[0];
       
       if (existing) {
+        console.log('👤 Upsert profile: updating existing', { contactId, profileId: existing._id });
         // Update existing profile
         const updatedData = {
           ...existing,
@@ -230,19 +230,28 @@ export const upsertProfile = webMethod(
         
         const result = await items.update(COLLECTION_ID, updatedData);
         
+        console.log('👤 Upsert profile: updated', { profileId: result?._id });
         return result;
       } else {
+        console.log('👤 Upsert profile: creating new', { contactId });
         // Create new profile
         const result = await items.insert(COLLECTION_ID, {
           contactId,
           ...profileData,
         });
         
+        console.log('👤 Upsert profile: created', { profileId: result?._id });
         return result;
       }
     } catch (error) {
-      console.error('👤 Error upserting profile:', error);
+      console.error('👤 Error upserting profile', {
+        contactId,
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+      });
       throw error;
     }
   }
 );
+

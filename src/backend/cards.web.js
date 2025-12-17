@@ -14,54 +14,14 @@ import { items } from '@wix/data';
 const COLLECTION_ID = '@daniel02231/project-manager-v0/KanbanCards';
 
 /**
- * Workflow stage type
- */
-type ContactStatus = 
-  | 'engage' | 'intent' | 'engagement' | 'advice-call' | 'qualification'
-  | 'straight-to-quote' | 'routing-pqq' | 'booking' | 'assessment-undertaken'
-  | 'assessment-completed' | 'sales-pitch' | 'tender-quote' | 'supplier-survey'
-  | 'go-no-go' | 'finance-payment' | 'installation' | 'project-completion';
-
-/**
- * Input type for creating a new card
- */
-interface CreateCardInput {
-  profileId: string;
-  stageId: ContactStatus;
-  stage: string;
-  callBackAppointmentDate?: string;
-  nextAppointment?: string | null;
-  readinessLevel?: number;
-  financeStatus?: string;
-  interestTags?: string[];
-  assessmentStatus?: string;
-  debriefDate?: string;
-  notes?: string;
-  marketingPipelines?: {
-    active: Array<{ id: string; name: string; status: string }>;
-    available: Array<{ id: string; name: string; description?: string }>;
-  };
-  tags?: string[];
-  formData?: Array<{ questionId: string; question: string; answer: string; answeredAt?: string }>;
-  partnerPortalRef?: string;
-  clientPortalRef?: string;
-  externalAssessmentStatus?: string;
-  externalClientStatus?: string;
-  tenders?: Array<{ id: string; submittedAt: string; amount: number; status: string; notes?: string }>;
-  quotes?: { id?: string; generatedAt?: string; amount?: number; validUntil?: string };
-  invoiceRef?: string;
-  approvalStatus?: 'pending' | 'go' | 'no-go';
-  financeTC?: boolean;
-  installationTC?: boolean;
-  projectCompleteTC?: boolean;
-}
-
-/**
  * Creates a new KanbanCard linked to a ClientProfile
+ * 
+ * @param cardData - The card data to insert
+ * @returns The created card with _id and timestamps
  */
 export const createCard = webMethod(
   Permissions.Anyone,
-  async (cardData: CreateCardInput) => {
+  async (cardData) => {
     try {
       const result = await items.insert(COLLECTION_ID, cardData);
       
@@ -76,10 +36,13 @@ export const createCard = webMethod(
 
 /**
  * Fetches a card by its ID
+ * 
+ * @param cardId - The unique card ID
+ * @returns The card data or null if not found
  */
 export const getCardById = webMethod(
   Permissions.Anyone,
-  async (cardId: string) => {
+  async (cardId) => {
     try {
       const result = await items.get(COLLECTION_ID, cardId);
       return result;
@@ -92,10 +55,13 @@ export const getCardById = webMethod(
 
 /**
  * Fetches all cards for a specific profile
+ * 
+ * @param profileId - The ClientProfile ID
+ * @returns Array of cards linked to that profile
  */
 export const getCardsByProfileId = webMethod(
   Permissions.Anyone,
-  async (profileId: string) => {
+  async (profileId) => {
     try {
       const result = await items.query(COLLECTION_ID)
         .eq('profileId', profileId)
@@ -111,10 +77,13 @@ export const getCardsByProfileId = webMethod(
 
 /**
  * Fetches all cards for a specific stage
+ * 
+ * @param stageId - The workflow stage ID
+ * @returns Array of cards in that stage
  */
 export const getCardsByStage = webMethod(
   Permissions.Anyone,
-  async (stageId: ContactStatus) => {
+  async (stageId) => {
     try {
       const result = await items.query(COLLECTION_ID)
         .eq('stageId', stageId)
@@ -130,6 +99,8 @@ export const getCardsByStage = webMethod(
 
 /**
  * Fetches all cards
+ * 
+ * @returns Array of all cards
  */
 export const getAllCards = webMethod(
   Permissions.Anyone,
@@ -139,7 +110,7 @@ export const getAllCards = webMethod(
       
       console.log('🎴 Fetched all cards:', result.items?.length || 0);
       return result.items || [];
-    } catch (error: any) {
+    } catch (error) {
       console.error('🎴 Error fetching all cards:', JSON.stringify({
         message: error?.message,
         code: error?.code,
@@ -153,10 +124,14 @@ export const getAllCards = webMethod(
 
 /**
  * Updates a card by ID
+ * 
+ * @param cardId - The ID of the card to update
+ * @param updates - Partial card data to merge with existing
+ * @returns The updated card
  */
 export const updateCard = webMethod(
   Permissions.Anyone,
-  async (cardId: string, updates: Partial<CreateCardInput>) => {
+  async (cardId, updates) => {
     try {
       const existing = await items.get(COLLECTION_ID, cardId);
       
@@ -184,10 +159,15 @@ export const updateCard = webMethod(
 
 /**
  * Updates just the stage of a card (for drag-and-drop)
+ * 
+ * @param cardId - The ID of the card to move
+ * @param stageId - The new stage ID
+ * @param stageName - The display name of the new stage
+ * @returns The updated card
  */
 export const updateCardStage = webMethod(
   Permissions.Anyone,
-  async (cardId: string, stageId: ContactStatus, stageName: string) => {
+  async (cardId, stageId, stageName) => {
     try {
       const existing = await items.get(COLLECTION_ID, cardId);
       
@@ -213,10 +193,13 @@ export const updateCardStage = webMethod(
 
 /**
  * Deletes a card by ID
+ * 
+ * @param cardId - The ID of the card to delete
+ * @returns True if deletion was successful
  */
 export const deleteCard = webMethod(
   Permissions.Anyone,
-  async (cardId: string) => {
+  async (cardId) => {
     try {
       await items.remove(COLLECTION_ID, cardId);
       
@@ -231,10 +214,14 @@ export const deleteCard = webMethod(
 
 /**
  * Creates a card for a profile if one doesn't exist, otherwise updates it
+ * 
+ * @param profileId - The ClientProfile ID
+ * @param cardData - The card data (without profileId)
+ * @returns The created or updated card
  */
 export const upsertCardForProfile = webMethod(
   Permissions.Anyone,
-  async (profileId: string, cardData: Omit<CreateCardInput, 'profileId'>) => {
+  async (profileId, cardData) => {
     try {
       const existingResult = await items.query(COLLECTION_ID)
         .eq('profileId', profileId)
@@ -244,6 +231,7 @@ export const upsertCardForProfile = webMethod(
       const existing = existingResult.items?.[0];
       
       if (existing) {
+        console.log('🎴 Upsert: existing card found for profile', profileId, 'cardId:', existing._id);
         const updatedData = {
           ...existing,
           ...cardData,
@@ -252,18 +240,27 @@ export const upsertCardForProfile = webMethod(
         };
         
         const result = await items.update(COLLECTION_ID, updatedData);
+        console.log('🎴 Upsert: updated card for profile', profileId, 'cardId:', result?._id);
         return result;
       } else {
+        console.log('🎴 Upsert: creating new card for profile', profileId);
         const result = await items.insert(COLLECTION_ID, {
           profileId,
           ...cardData,
         });
         
+        console.log('🎴 Upsert: created new card for profile', profileId, 'cardId:', result?._id);
         return result;
       }
     } catch (error) {
-      console.error('🎴 Error upserting card:', error);
+      console.error('🎴 Error upserting card for profile', profileId, {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        cardData,
+      });
       throw error;
     }
   }
 );
+
