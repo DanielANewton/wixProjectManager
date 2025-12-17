@@ -4,8 +4,8 @@
  * This utility provides functions to interact with Wix Data collections
  * directly from the frontend, without using backend web methods.
  * 
- * This demonstrates direct frontend access to Wix Data, similar to how
- * the project uses @wix/crm directly in useContacts.ts.
+ * This demonstrates direct frontend access to Wix Data.
+ * Note: For CRM contacts, use the crmService.ts which calls backend web methods.
  */
 
 import { items } from '@wix/data';

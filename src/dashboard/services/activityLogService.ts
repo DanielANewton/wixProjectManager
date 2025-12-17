@@ -2,7 +2,7 @@
  * Activity Log Service - Frontend wrapper for ActivityLog Web Methods
  * 
  * This service provides a clean interface to the backend activity log operations.
- * It imports and calls the Web Methods defined in src/backend/activityLog.web.ts
+ * It imports and calls the Web Methods defined in src/backend/activityLog.web.js
  * 
  * The ActivityLog stores history entries and comments for KanbanCards.
  * Data Flow: CRM Contact -> ClientProfiles -> KanbanCards -> ActivityLog

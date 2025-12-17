@@ -2,10 +2,18 @@ import { contacts } from '@wix/crm';
 import { useQuery } from '@tanstack/react-query';
 
 /**
+ * @deprecated This hook is deprecated. Use the Import Dashboard to import contacts
+ * into ClientProfiles, then use useKanbanCards to fetch cards for the Kanban board.
+ * 
  * useContacts - Hook to fetch contacts from Wix CRM
  * 
- * This hook retrieves all contacts from the Wix CRM and transforms them
- * into a format suitable for the YorProject Kanban board with 17 workflow stages.
+ * DEPRECATED: The Kanban board now loads cards from the KanbanCards collection
+ * which are linked to ClientProfiles. Contacts should be imported via the
+ * Import Dashboard page (/import) instead of being fetched directly from CRM.
+ * 
+ * New Data Flow: CRM -> Import Dashboard -> ClientProfiles -> KanbanCards -> KanbanBoard
+ * 
+ * This hook is kept for backward compatibility but should not be used in new code.
  * 
  * Each contact is mapped to a card with:
  * - id: The contact's unique ID
@@ -211,6 +219,8 @@ function transformContactToCard(contact: contacts.Contact): ContactCard {
 }
 
 /**
+ * @deprecated Use the Import Dashboard and useKanbanCards instead.
+ * 
  * Main hook to fetch and transform CRM contacts
  * Returns loading state, error state, and transformed contact cards
  */

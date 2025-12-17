@@ -2,7 +2,7 @@
  * Card Service - Frontend wrapper for card Web Methods
  * 
  * This service provides a clean interface to the backend card operations.
- * It imports and calls the Web Methods defined in src/backend/cards.web.ts
+ * It imports and calls the Web Methods defined in src/backend/cards.web.js
  * 
  * Data Flow: CRM Contact -> ClientProfiles -> KanbanCards -> ActivityLog
  * Note: Cards now link to profiles via profileId (not contactId)

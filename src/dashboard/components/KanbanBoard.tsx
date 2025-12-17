@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import { Loader, Box, Text } from '@wix/design-system';
 import KanbanColumn, { CardData } from './KanbanColumn.js';
-import { useContacts, ContactCard } from '../hooks/useContacts.js';
 import { useKanbanCards } from '../hooks/useKanbanCards.js';
-import { ContactStatus } from '../types/kanbanCard.js';
+import { ContactStatus, KanbanCard, ClientProfile } from '../types/kanbanCard.js';
 import ExpandedCardView from './ExpandedCardView/ExpandedCardView.js';
 
 /**
  * KanbanBoard - Main Kanban board component with drag-and-drop functionality
- * 
+ *
  * This component manages the state of all columns and cards, handling:
- * - Loading contacts from Wix CRM and syncing with Kanban cards
+ * - Loading cards from KanbanCards collection (linked to ClientProfiles)
  * - Drag and drop between columns with database persistence
  * - Opening expanded card view on card click
  * - Adding, editing, and deleting cards
- * 
+ *
+ * Data Flow: ClientProfiles -> KanbanCards -> KanbanBoard display
+ *
  * @param onBoardChange - Optional callback when board state changes
  */
 
@@ -51,47 +52,129 @@ export const columnConfig = [
 ] as const;
 
 /**
- * Organizes contact cards into columns based on their status
+ * Gets display name for a card by looking up its linked profile
+ *
+ * @param card - The KanbanCard
+ * @param profilesMap - Map of profile IDs to profiles
+ * @returns Formatted display name (firstName lastName) or fallback
  */
-function organizeContactsIntoColumns(contacts: ContactCard[]): ColumnData[] {
-  return columnConfig.map(col => ({
+function getCardDisplayName(
+  card: KanbanCard,
+  profilesMap: Map<string, ClientProfile>
+): string {
+  const profile = profilesMap.get(card.profileId);
+
+  if (!profile?.clientInfo) {
+    return 'Unknown Client';
+  }
+
+  const { firstName, lastName, email } = profile.clientInfo;
+  const fullName = `${firstName || ''} ${lastName || ''}`.trim();
+
+  if (fullName) return fullName;
+  if (email) return email;
+  return 'Unknown Client';
+}
+
+/**
+ * Gets description for a card by looking up its linked profile
+ *
+ * @param card - The KanbanCard
+ * @param profilesMap - Map of profile IDs to profiles
+ * @returns Email or phone from profile, or notes from card
+ */
+function getCardDescription(
+  card: KanbanCard,
+  profilesMap: Map<string, ClientProfile>
+): string {
+  const profile = profilesMap.get(card.profileId);
+
+  if (profile?.clientInfo?.email) {
+    return profile.clientInfo.email;
+  }
+  if (profile?.clientInfo?.phone) {
+    return profile.clientInfo.phone;
+  }
+  if (card.notes) {
+    return card.notes;
+  }
+  return 'No contact info';
+}
+
+/**
+ * Organizes KanbanCards into columns by their stageId
+ * Enriches cards with profile data for display
+ *
+ * @param cards - Array of KanbanCards from the database
+ * @param profilesMap - Map of profile IDs to profiles for lookup
+ * @returns Array of ColumnData with cards organized by stage
+ */
+function organizeCardsIntoColumns(
+  cards: KanbanCard[],
+  profilesMap: Map<string, ClientProfile>
+): ColumnData[] {
+  return columnConfig.map((col) => ({
     id: col.id,
     title: col.title,
-    cards: contacts
-      .filter(contact => contact.status === col.id)
-      .map(contact => ({
-        id: contact.id,
-        title: contact.title,
-        description: contact.description,
-        priority: contact.priority,
+    cards: cards
+      .filter((card) => card.stageId === col.id)
+      .map((card) => ({
+        id: card._id || '',
+        title: getCardDisplayName(card, profilesMap),
+        description: getCardDescription(card, profilesMap),
+        priority: 'medium' as const, // Default priority, can be extended later
       })),
   }));
 }
 
 export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
-  // Fetch contacts from Wix CRM
-  const { contacts, isLoading: isLoadingContacts, isError, error } = useContacts();
-  
-  // Kanban cards data layer for persistence
-  const { moveCard, isMoving } = useKanbanCards();
-  
+  // Fetch cards and profiles from the database
+  const {
+    cards,
+    profiles,
+    isLoading,
+    isError,
+    error,
+    moveCard,
+    isMoving,
+    deleteCard,
+  } = useKanbanCards();
+
+  // Create a map of profiles for quick lookup by ID
+  const profilesMap = useMemo(() => {
+    const map = new Map<string, ClientProfile>();
+    for (const profile of profiles) {
+      if (profile._id) {
+        map.set(profile._id, profile);
+      }
+    }
+    return map;
+  }, [profiles]);
+
   // State to track all columns and their cards
   const [columns, setColumns] = useState<ColumnData[]>(
-    columnConfig.map(col => ({ ...col, cards: [] }))
+    columnConfig.map((col) => ({ ...col, cards: [] }))
   );
 
   // State for expanded card view
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
-  const [expandedStageId, setExpandedStageId] = useState<ContactStatus | null>(null);
+  const [expandedStageId, setExpandedStageId] = useState<ContactStatus | null>(
+    null
+  );
 
-  // Update columns when contacts are loaded
+  // Update columns when cards or profiles are loaded
   useEffect(() => {
-    if (contacts.length > 0) {
-      const organizedColumns = organizeContactsIntoColumns(contacts);
+    if (cards.length > 0 || profiles.length > 0) {
+      const organizedColumns = organizeCardsIntoColumns(cards, profilesMap);
       setColumns(organizedColumns);
-      console.log('📋 Board initialized with contacts:', contacts.length);
+      console.log(
+        '📋 Board initialized with cards:',
+        cards.length,
+        'profiles:',
+        profiles.length
+      );
     }
-  }, [contacts]);
+  }, [cards, profiles, profilesMap]);
 
   /**
    * Handles the end of a drag operation
@@ -152,7 +235,7 @@ export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
 
       setColumns(newColumns);
       onBoardChange?.(newColumns);
-      
+
       // Persist the stage change to the database
       try {
         await moveCard({
@@ -161,7 +244,12 @@ export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
           toStageId: destColumn.id as ContactStatus,
           toStageName: destColumn.title,
         });
-        console.log('📋 Card moved and persisted:', movedCard.id, 'to:', destColumn.id);
+        console.log(
+          '📋 Card moved and persisted:',
+          movedCard.id,
+          'to:',
+          destColumn.id
+        );
       } catch (err) {
         console.error('📋 Failed to persist card move:', err);
         // Could revert the UI change here if persistence fails
@@ -171,19 +259,21 @@ export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
 
   /**
    * Adds a new card to the specified column
+   * Note: In the new system, cards should be created via the Import page
+   * This is kept for backwards compatibility but may show a placeholder
    */
   const handleAddCard = (columnId: string) => {
+    // Cards should now be created via the Import page
+    // This creates a placeholder card that won't be persisted
     const newCard: CardData = {
-      id: `card-${Date.now()}`,
+      id: `temp-card-${Date.now()}`,
       title: 'New Contact',
-      description: 'Add contact details',
+      description: 'Import contacts from the Import page',
       priority: 'medium',
     };
 
     const newColumns = columns.map((col) =>
-      col.id === columnId
-        ? { ...col, cards: [...col.cards, newCard] }
-        : col
+      col.id === columnId ? { ...col, cards: [...col.cards, newCard] } : col
     );
 
     setColumns(newColumns);
@@ -212,8 +302,8 @@ export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
    */
   const handleEditCard = (cardId: string) => {
     // Find which column this card is in
-    const column = columns.find(col => 
-      col.cards.some(card => card.id === cardId)
+    const column = columns.find((col) =>
+      col.cards.some((card) => card.id === cardId)
     );
     if (column) {
       handleCardClick(cardId, column.id);
@@ -221,9 +311,10 @@ export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
   };
 
   /**
-   * Deletes a card from all columns
+   * Deletes a card from all columns and the database
    */
-  const handleDeleteCard = (cardId: string) => {
+  const handleDeleteCard = async (cardId: string) => {
+    // Update local state immediately for responsive UI
     const newColumns = columns.map((col) => ({
       ...col,
       cards: col.cards.filter((card) => card.id !== cardId),
@@ -231,7 +322,16 @@ export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
 
     setColumns(newColumns);
     onBoardChange?.(newColumns);
-    console.log('📋 Card deleted:', cardId);
+
+    // Persist deletion to database (skip for temp cards)
+    if (!cardId.startsWith('temp-')) {
+      try {
+        await deleteCard(cardId);
+        console.log('📋 Card deleted from database:', cardId);
+      } catch (err) {
+        console.error('📋 Failed to delete card:', err);
+      }
+    }
   };
 
   /**
@@ -248,13 +348,13 @@ export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
     setExpandedStageId(stageId);
   };
 
-  // Show loading state while fetching contacts
-  if (isLoadingContacts) {
+  // Show loading state while fetching data
+  if (isLoading) {
     return (
       <Box align="center" verticalAlign="middle" height="400px">
         <Box direction="vertical" align="center" gap={3}>
           <Loader size="medium" />
-          <Text>Loading contacts from CRM...</Text>
+          <Text>Loading Kanban cards...</Text>
         </Box>
       </Box>
     );
@@ -265,7 +365,7 @@ export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
     return (
       <Box align="center" verticalAlign="middle" height="400px">
         <Box direction="vertical" align="center" gap={3}>
-          <Text>Failed to load contacts</Text>
+          <Text>Failed to load cards</Text>
           <Text size="small" secondary>
             {error instanceof Error ? error.message : 'Unknown error'}
           </Text>
@@ -274,8 +374,26 @@ export default function KanbanBoard({ onBoardChange }: KanbanBoardProps) {
     );
   }
 
+  // Show empty state if no cards exist
+  const totalCards = columns.reduce((sum, col) => sum + col.cards.length, 0);
+
   return (
     <>
+      {totalCards === 0 && (
+        <Box
+          align="center"
+          padding="SP4"
+          marginBottom="SP4"
+          backgroundColor="D70"
+          borderRadius="6px"
+        >
+          <Text secondary>
+            No cards yet. Use the Import Contacts page to import CRM contacts
+            into the Kanban workflow.
+          </Text>
+        </Box>
+      )}
+
       <DragDropContext onDragEnd={handleDragEnd}>
         <div
           style={{

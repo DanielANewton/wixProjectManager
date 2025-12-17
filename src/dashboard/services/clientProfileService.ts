@@ -2,7 +2,7 @@
  * Client Profile Service - Frontend wrapper for profile Web Methods
  * 
  * This service provides a clean interface to the backend profile operations.
- * It imports and calls the Web Methods defined in src/backend/profiles.web.ts
+ * It imports and calls the Web Methods defined in src/backend/profiles.web.js
  * 
  * Data Flow: CRM Contact -> ClientProfiles -> KanbanCards -> ActivityLog
  */

@@ -222,12 +222,17 @@ export function useCardsByProfile(profileId: string | null) {
 }
 
 /**
+ * @deprecated Use the Import Dashboard page (/import) instead.
+ * 
  * Hook for syncing CRM contacts to profiles and cards
  * 
- * New Flow: CRM Contact -> ClientProfile -> KanbanCard
- * 1. Fetch contacts from CRM
- * 2. Create/update ClientProfile for each contact
- * 3. Create KanbanCard linked to the profile
+ * DEPRECATED: This automatic sync function is replaced by the Import Dashboard
+ * which gives users explicit control over which contacts to import.
+ * 
+ * Old Flow: CRM Contact -> ClientProfile -> KanbanCard (automatic)
+ * New Flow: CRM Contact -> Import Dashboard (user selection) -> ClientProfiles -> KanbanCards
+ * 
+ * This hook is kept for backward compatibility but should not be used in new code.
  */
 export function useSyncContactsToCards() {
   const queryClient = useQueryClient();
