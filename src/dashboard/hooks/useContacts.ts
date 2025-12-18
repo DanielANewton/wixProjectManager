@@ -61,12 +61,13 @@ export interface ContactCard {
  * Add your CRM labels here to automatically place contacts in the right stage
  */
 const labelToStageMap: Record<string, ContactStatus> = {
-  // Stage 1: Engage - Early interest
+  // Stage 1: Interest - Early interest
   'newsletter': 'engage',
   'calculator': 'engage',
   'plan-builder': 'engage',
   'esc': 'engage',
   'energy-saving': 'engage',
+  'interest': 'engage',
   
   // Stage 2: Intent
   'intent': 'intent',
@@ -143,7 +144,7 @@ const labelToStageMap: Record<string, ContactStatus> = {
 
 /**
  * Determines the workflow stage for a contact based on their labels
- * Checks labels against the mapping, defaults to 'engage' for new contacts
+ * Checks labels against the mapping, defaults to 'interest' for new contacts
  */
 function determineStatus(contact: contacts.Contact): ContactStatus {
   const labelKeys = contact.info?.labelKeys?.items || [];
@@ -165,7 +166,7 @@ function determineStatus(contact: contacts.Contact): ContactStatus {
     }
   }
   
-  // Default to 'engage' for new/untagged contacts
+  // Default to 'interest' for new/untagged contacts
   return 'engage';
 }
 

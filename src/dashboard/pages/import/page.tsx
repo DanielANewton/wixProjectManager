@@ -164,10 +164,10 @@ function ImportPage() {
         if (profile?._id) {
           console.log('📇 Created/updated profile for contact', contact._id, 'profileId:', profile._id);
           // Step 2: Create or update a KanbanCard for this profile
-          // Cards start in the "Engage" stage by default
+          // Cards start in the "Interest" stage by default
           const cardResult = await upsertCardForProfile(profile._id, {
             stageId: 'engage',
-            stage: '1. Engage',
+            stage: '1. Interest',
               readinessLevel: 1,
               financeStatus: 'unknown',
               callBackAppointmentDate: null,
@@ -377,7 +377,7 @@ function ImportPage() {
                 <Box direction="vertical" gap="SP3">
                   <Text size="small">
                     Selected contacts will be added to the ClientProfiles collection 
-                    and a Kanban card will be created in the "Engage" stage.
+                    and a Kanban card will be created in the "Interest" stage.
                   </Text>
 
                   <Box direction="horizontal" gap="SP3" verticalAlign="middle">

@@ -118,7 +118,7 @@ export default function CreateCardModal({
 
   // Get the selected stage title
   const selectedStageTitle = useMemo(() => {
-    return columnConfig.find((col) => col.id === selectedStageId)?.title || '1. Engage';
+    return columnConfig.find((col) => col.id === selectedStageId)?.title || '1. Interest';
   }, [selectedStageId]);
 
   // Get selected profile name for display

@@ -7,6 +7,8 @@ import {
   Badge, 
   Button,
   TextButton,
+  Tag,
+  Input,
 } from '@wix/design-system';
 import * as Icons from '@wix/wix-ui-icons-common';
 import { MarketingPipelines } from '../../types/kanbanCard.js';
@@ -16,26 +18,62 @@ import { MarketingPipelines } from '../../types/kanbanCard.js';
  * 
  * Two-column layout:
  * - Left Column: Notes editor (rich text area)
- * - Right Column: Marketing pipelines accordion
+ * - Right Column: Marketing pipelines accordion and Interest Tags
  * 
  * @param notes - Current notes text
  * @param marketingPipelines - Active and available campaigns
+ * @param interestTags - Lead source / interest tags
  * @param onNotesChange - Callback when notes are updated
+ * @param onUpdateInterestTags - Callback when interest tags are updated
  */
 
 export interface CommunicationsGridProps {
   notes: string;
   marketingPipelines?: MarketingPipelines;
+  interestTags?: string[];
   onNotesChange: (notes: string) => void;
+  onUpdateInterestTags: (tags: string[]) => void;
 }
 
 export default function CommunicationsGrid({
   notes,
   marketingPipelines,
+  interestTags = [],
   onNotesChange,
+  onUpdateInterestTags,
 }: CommunicationsGridProps) {
   const [localNotes, setLocalNotes] = useState(notes);
   const [isSaving, setIsSaving] = useState(false);
+  const [newTag, setNewTag] = useState('');
+
+  // Predefined interest tags (lead sources)
+  const AVAILABLE_INTERESTS = [
+    'Organic Search',
+    'Paid Ads',
+    'Social Media',
+    'Referral',
+    'Website Inquiry',
+    'Event / Trade Show',
+    'Direct Mail',
+    'Email Campaign',
+  ];
+
+  // Toggle a tag selection
+  const handleToggleTag = (tag: string) => {
+    if (interestTags.includes(tag)) {
+      onUpdateInterestTags(interestTags.filter(t => t !== tag));
+    } else {
+      onUpdateInterestTags([...interestTags, tag]);
+    }
+  };
+
+  // Add a custom tag
+  const handleAddTag = () => {
+    if (newTag.trim() && !interestTags.includes(newTag.trim())) {
+      onUpdateInterestTags([...interestTags, newTag.trim()]);
+      setNewTag('');
+    }
+  };
 
   // Handle notes save
   const handleSaveNotes = async () => {
@@ -51,14 +89,14 @@ export default function CommunicationsGrid({
   const hasChanges = localNotes !== notes;
 
   return (
-    <Box marginBottom={4}>
+    <Box marginBottom={4} width="100%">
       <Text weight="bold" size="small" secondary>
         Communications
       </Text>
       
-      <Box gap={4} marginTop={3}>
+      <Box gap={4} marginTop={3} wrap="wrap" width="100%">
         {/* Left Column - Notes Editor */}
-        <Box direction="vertical" flex={1} gap={2}>
+        <Box direction="vertical" flexBasis="0" flexGrow={1} gap={2} minWidth="300px" width="100%" overflow="hidden">
           <Box align="space-between" verticalAlign="middle">
             <Text size="small" weight="bold">
               Notes
@@ -84,7 +122,7 @@ export default function CommunicationsGrid({
         </Box>
 
         {/* Right Column - Marketing Pipelines */}
-        <Box direction="vertical" flex={1} gap={2}>
+        <Box direction="vertical" flexBasis="0" flexGrow={1} gap={2} minWidth="300px" width="100%" overflow="hidden">
           <Text size="small" weight="bold">
             Marketing Pipelines
           </Text>
@@ -94,6 +132,7 @@ export default function CommunicationsGrid({
             backgroundColor="#f7f8fa"
             borderRadius="8px"
             padding="12px"
+            width="100%"
           >
             {/* Active Campaigns */}
             <Accordion
@@ -166,6 +205,77 @@ export default function CommunicationsGrid({
               ]}
             />
           </Box>
+
+          {/* Interest Tags Section (Lead Source) */}
+          <Box direction="vertical" gap={2} marginTop={4}>
+            <Text size="small" weight="bold">
+              Lead Source / Interest Tags
+            </Text>
+            <Box
+              direction="vertical"
+              backgroundColor="#f7f8fa"
+              borderRadius="8px"
+              padding="12px"
+              gap={3}
+              width="100%"
+            >
+              {/* Selected Interest Tags */}
+              <Box gap={2} wrap="wrap" width="100%" maxWidth="100%">
+                {interestTags.map((tag) => (
+                  <Tag
+                    key={tag}
+                    id={tag}
+                    removable
+                    onRemove={() => handleToggleTag(tag)}
+                    size="small"
+                  >
+                    {tag}
+                  </Tag>
+                ))}
+                {interestTags.length === 0 && (
+                  <Text size="tiny" secondary>No interest tags added yet</Text>
+                )}
+              </Box>
+
+              {/* Quick Add Interests */}
+              <Box direction="vertical" gap={1} width="100%" maxWidth="100%">
+                <Text size="tiny" secondary>Quick add lead source:</Text>
+                <Box gap={2} wrap="wrap" width="100%" maxWidth="100%">
+                  {AVAILABLE_INTERESTS.filter(t => !interestTags.includes(t)).map((tag) => (
+                    <Tag
+                      key={tag}
+                      id={tag}
+                      onClick={() => handleToggleTag(tag)}
+                      theme="light"
+                      size="small"
+                    >
+                      {tag}
+                    </Tag>
+                  ))}
+                </Box>
+              </Box>
+
+              {/* Custom Tag Input */}
+              <Box gap={2} verticalAlign="bottom" width="100%">
+                <Box flex={1}>
+                  <Input
+                    size="small"
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    placeholder="Other lead source..."
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                  />
+                </Box>
+                <Button
+                  size="small"
+                  onClick={handleAddTag}
+                  disabled={!newTag.trim()}
+                >
+                  Add
+                </Button>
+              </Box>
+            </Box>
+          </Box>
         </Box>
       </Box>
     </Box>
@@ -197,6 +307,7 @@ function CampaignItem({
       borderRadius="4px"
       align="space-between"
       verticalAlign="middle"
+      width="100%"
     >
       <Box direction="vertical" gap={1}>
         <Text size="small">{name}</Text>

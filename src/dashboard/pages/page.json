@@ -1,5 +1,8 @@
 {
     "$schema": "https://dev.wix.com/wix-cli/schemas/dashboard-page.json",
     "id": "5cef8d78-6fbe-4a58-8b25-ef3c5e478a09",
-    "title": "Overview"
+    "title": "Overview",
+    "sidebar": {
+        "priority": 1
+    }
 }

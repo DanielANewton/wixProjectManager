@@ -317,7 +317,7 @@ export function useSyncContactsToCards() {
           const newCard = await cardService.createCard({
             profileId: profile._id,
             stageId: 'engage',
-            stage: '1. Engage',
+            stage: '1. Interest',
           });
           
           if (newCard) {

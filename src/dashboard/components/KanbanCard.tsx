@@ -34,6 +34,7 @@ export interface KanbanCardProps {
   // Fields for enhanced card display
   readinessLevel?: number;
   interestTags?: string[];
+  qualificationTags?: string[];
   callBackDate?: string;
   stageId?: string;
   financeStatus?: string;
@@ -78,6 +79,7 @@ export default function KanbanCard({
   title,
   readinessLevel,
   interestTags,
+  qualificationTags,
   callBackDate,
   financeStatus,
   lastUpdatedBy,
@@ -131,6 +133,47 @@ export default function KanbanCard({
   };
 
   /**
+   * Renders qualification tags (auditor added) with warning style
+   * Shows max 3 tags with "+X more" indicator if there are more
+   */
+  const renderQualificationTags = () => {
+    if (!qualificationTags || qualificationTags.length === 0) return null;
+    
+    const displayTags = qualificationTags.slice(0, 3);
+    const remainingCount = qualificationTags.length - 3;
+    
+    return (
+      <Box direction="vertical" gap="2px">
+        <Text size="tiny" secondary>Qualification:</Text>
+        <Box gap="4px" wrap="wrap">
+          {displayTags.map((tag, idx) => (
+            <Badge 
+              key={idx} 
+              size="tiny" 
+              skin="warning"
+            >
+              <span style={{ 
+                display: 'block', 
+                maxWidth: '80px', 
+                overflow: 'hidden', 
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap' 
+              }}>
+                {tag}
+              </span>
+            </Badge>
+          ))}
+          {remainingCount > 0 && (
+            <Badge size="tiny" skin="warningLight">
+              +{remainingCount}
+            </Badge>
+          )}
+        </Box>
+      </Box>
+    );
+  };
+
+  /**
    * Renders interest tags as a tag cloud with label
    * Shows max 3 tags with "+X more" indicator if there are more
    */
@@ -142,13 +185,13 @@ export default function KanbanCard({
     
     return (
       <Box direction="vertical" gap="2px">
-        <Text size="tiny" secondary>Interests:</Text>
+        <Text size="tiny" secondary>Lead Source / Interests:</Text>
         <Box gap="4px" wrap="wrap">
           {displayTags.map((tag, idx) => (
             <Badge 
               key={idx} 
               size="tiny" 
-              skin="neutralStandard"
+              skin="neutral"
             >
               <span style={{ 
                 display: 'block', 
@@ -375,6 +418,9 @@ export default function KanbanCard({
 
                       {/* Callback date with label */}
                       {renderCallbackDate()}
+
+                      {/* Qualification tags cloud */}
+                      {renderQualificationTags()}
 
                       {/* Interest tags cloud at the bottom with label */}
                       {renderInterestTags()}

@@ -191,7 +191,7 @@ export async function upsertCardForProfile(
   try {
     const result = await backendUpsertCardForProfile(profileId, {
       stageId: cardData.stageId || 'engage',
-      stage: cardData.stage || '1. Engage',
+      stage: cardData.stage || '1. Interest',
       ...cardData,
     });
     // Backend returns card directly (not wrapped in { data: ... })

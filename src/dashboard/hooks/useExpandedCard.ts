@@ -117,6 +117,8 @@ export function useExpandedCard(cardId: string): UseExpandedCardResult {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.EXPANDED_CARD, cardId] });
+      // Also invalidate the main kanban cards query so changes show on the board
+      queryClient.invalidateQueries({ queryKey: ['kanbanCards'] });
     },
   });
 
@@ -131,6 +133,8 @@ export function useExpandedCard(cardId: string): UseExpandedCardResult {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CARD_PROFILE, profileId] });
+      // Also invalidate the main kanban cards query so changes show on the board
+      queryClient.invalidateQueries({ queryKey: ['kanbanCards'] });
     },
   });
 

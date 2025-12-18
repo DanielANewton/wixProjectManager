@@ -28,6 +28,7 @@ export interface CardData {
   // Extended fields for enhanced card display
   readinessLevel?: number;          // Client readiness score (1-5 scale)
   interestTags?: string[];          // Array of interest tags for tag cloud
+  qualificationTags?: string[];     // Array of qualification tags (auditor added)
   callBackDate?: string;            // Callback/re-engage appointment date
   stageId?: string;                 // Current workflow stage identifier
   financeStatus?: string;           // Finance application status
@@ -156,6 +157,7 @@ export default function KanbanColumn({
                 priority={card.priority}
                 readinessLevel={card.readinessLevel}
                 interestTags={card.interestTags}
+                qualificationTags={card.qualificationTags}
                 callBackDate={card.callBackDate}
                 stageId={card.stageId}
                 financeStatus={card.financeStatus}

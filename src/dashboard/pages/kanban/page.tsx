@@ -8,7 +8,7 @@ import KanbanBoard from '../../components/KanbanBoard.js';
  * KanbanPage - YorProject Master Workflow Dashboard
  *
  * This page provides the main Project Management System interface with:
- * - 17 workflow stages from Engage to Project Completion
+ * - 17 workflow stages from Interest to Project Completion
  * - Draggable cards for each client (imported from CRM via Import page)
  * - Cards linked to ClientProfiles for detailed client data
  * - Visual pipeline for customer journey tracking

@@ -12,14 +12,14 @@ import * as Icons from '@wix/wix-ui-icons-common';
 import { FormDataItem } from '../../../types/kanbanCard.js';
 
 /**
- * QualificationTab - Interest tags and qualification form data
+ * QualificationTab - Auditor-added qualification tags and form data
  * 
  * Features:
- * - Tag cloud for selecting interest tags
+ * - Tag cloud for selecting qualification tags (auditor findings)
  * - Dynamic form for qualification questions
  * - Add/remove tags
  * 
- * @param tags - Currently selected tags
+ * @param tags - Currently selected qualification tags
  * @param formData - Qualification form responses
  * @param onUpdateTags - Callback to update tags
  * @param onUpdateFormData - Callback to update form data
@@ -32,20 +32,20 @@ export interface QualificationTabProps {
   onUpdateFormData: (formData: FormDataItem[]) => void;
 }
 
-// Predefined interest tags for the tag cloud
+// Predefined qualification tags for the auditor
 const AVAILABLE_TAGS = [
-  'Solar PV',
-  'Heat Pump',
-  'EV Charger',
-  'Insulation',
-  'Windows',
-  'Battery Storage',
-  'Smart Home',
-  'Boiler',
-  'Underfloor Heating',
-  'Renewable Energy',
-  'Energy Audit',
+  'Solar PV Suitable',
+  'Heat Pump Suitable',
+  'EV Ready',
+  'High Efficiency',
+  'Cavity Wall Insulated',
+  'Loft Insulated',
+  'A-Rated Windows',
+  'Smart Meter Installed',
   'Grant Eligible',
+  'ECO4 Potential',
+  'GBIS Potential',
+  'Urgent Requirement',
 ];
 
 export default function QualificationTab({
@@ -85,9 +85,9 @@ export default function QualificationTab({
 
   return (
     <Box direction="vertical" gap={4}>
-      {/* Interest Tags Section */}
+      {/* Qualification Tags Section */}
       <Box direction="vertical" gap={3}>
-        <Text size="small" weight="bold">Interest Tags</Text>
+        <Text size="small" weight="bold">Auditor Qualification Tags</Text>
         
         {/* Selected Tags - tag cloud with full text display */}
         <div
@@ -111,13 +111,13 @@ export default function QualificationTab({
             </Tag>
           ))}
           {tags.length === 0 && (
-            <Text size="small" secondary>No tags selected</Text>
+            <Text size="small" secondary>No qualification tags selected</Text>
           )}
         </div>
 
         {/* Available Tags Cloud */}
         <Box direction="vertical" gap={2}>
-          <Text size="tiny" secondary>Click to add tags:</Text>
+          <Text size="tiny" secondary>Click to add qualification findings:</Text>
           <div
             style={{
               display: 'flex',
@@ -145,7 +145,7 @@ export default function QualificationTab({
             size="small"
             value={newTag}
             onChange={(e) => setNewTag(e.target.value)}
-            placeholder="Add custom tag..."
+            placeholder="Add custom qualification tag..."
             onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
           />
           <Button

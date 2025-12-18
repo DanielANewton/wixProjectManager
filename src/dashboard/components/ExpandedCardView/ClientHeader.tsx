@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Text, Avatar, Badge, Divider } from '@wix/design-system';
+import { Box, Text, Avatar, Badge, Divider, Dropdown } from '@wix/design-system';
 import * as Icons from '@wix/wix-ui-icons-common';
 import { ClientProfile, KanbanCard, ClientInfo } from '../../types/kanbanCard.js';
 
@@ -50,6 +50,14 @@ export default function ClientHeader({
         .filter(Boolean)
         .join(', ')
     : null;
+
+  // Finance status options
+  const financeOptions = [
+    { id: 'No Finance Required', value: 'No Finance Required' },
+    { id: 'Interested in Finance', value: 'Interested in Finance' },
+    { id: 'Finance Application', value: 'Finance Application' },
+    { id: 'Finance Confirmed', value: 'Finance Confirmed' },
+  ];
 
   return (
     <Box
@@ -169,21 +177,18 @@ export default function ClientHeader({
             })}
           </Box>
         </Box>
-        {card?.financeStatus && (
-          <Box direction="vertical" gap={1}>
-            <Text size="tiny" secondary>Finance Status</Text>
-            <Badge
-              size="tiny"
-              skin={
-                card.financeStatus === 'approved' ? 'success' :
-                card.financeStatus === 'pending' ? 'warning' :
-                card.financeStatus === 'rejected' ? 'danger' : 'general'
-              }
-            >
-              {card.financeStatus}
-            </Badge>
+        <Box direction="vertical" gap={1}>
+          <Text size="tiny" secondary>Finance Status</Text>
+          <Box width="200px">
+            <Dropdown
+              size="small"
+              placeholder="Select Status"
+              options={financeOptions}
+              selectedId={card?.financeStatus}
+              onSelect={(option) => onUpdateCard?.({ financeStatus: option.id as string })}
+            />
           </Box>
-        )}
+        </Box>
       </Box>
     </Box>
   );

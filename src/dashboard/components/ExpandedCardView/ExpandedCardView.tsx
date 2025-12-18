@@ -196,7 +196,9 @@ export default function ExpandedCardView({
                 <CommunicationsGrid
                   notes={card?.notes || ''}
                   marketingPipelines={card?.marketingPipelines}
+                  interestTags={card?.interestTags}
                   onNotesChange={(notes) => updateCard({ notes })}
+                  onUpdateInterestTags={(interestTags) => updateCard({ interestTags })}
                 />
 
                 {/* Row C: Activity & Tabs */}

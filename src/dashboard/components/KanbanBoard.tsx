@@ -34,7 +34,7 @@ export interface KanbanBoardProps {
 
 // YorProject Kanban Workflow Stages - 17 stages for the customer journey
 export const columnConfig = [
-  { id: 'engage', title: '1. Engage' },
+  { id: 'engage', title: '1. Interest' },
   { id: 'intent', title: '2. Intent' },
   { id: 'engagement', title: '3. Engagement' },
   { id: 'advice-call', title: '4. Advice Call' },
@@ -129,6 +129,7 @@ function organizeCardsIntoColumns(
         // Extended fields for enhanced card display
         readinessLevel: card.readinessLevel,
         interestTags: card.interestTags,
+        qualificationTags: card.tags,
         callBackDate: card.callBackAppointmentDate,
         stageId: card.stageId,
         financeStatus: card.financeStatus,
